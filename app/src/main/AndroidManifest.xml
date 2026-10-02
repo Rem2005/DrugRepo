@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        TODO.md Phase 0 task 5. Officer-facing rationale for each permission lives in
+        res/values/strings.xml (permission_*_rationale) and is shown when Phase 2 requests
+        them at runtime. The comments below are the developer-facing record of why each
+        permission is or is not here.
+
+        No telephony permission is ever declared: IMEI is unreadable by a normal app on
+        Android 10+ (PRD.md FR-011), so declaring one would be both useless and
+        over-collecting. Enforced by PermissionContractTest, not just this comment.
+    -->
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
+    <!--
+        GPS is optional on purpose. PRD.md FR-012 requires the app to keep working when
+        location is unavailable: the record is sealed with gps_metadata.available = false
+        and the certificate is flagged. required="false" also stops Play from filtering
+        out devices without a GPS receiver.
+    -->
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+
+    <!--
+        Captures the field reference card so the colour change can be measured on-device
+        (PRD.md FR-001..FR-005). Analysis runs locally; the app is unusable without a
+        camera, so the feature is required.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+        COARSE is mandatory alongside FINE and is not an extra ask: on targetSdk 31+ the
+        platform ignores a FINE-only request entirely and grants neither. Declaring it
+        also covers the officer selecting "Approximate", which yields a real fix at
+        ~3 km instead of ~50 m. That still satisfies FR-012: the fix is recorded with its
+        real accuracy_meters rather than the capture being blocked.
+
+        No ACCESS_BACKGROUND_LOCATION: every capture is a foreground, officer-initiated
+        action (PRD.md user workflow 4-7), so background access is not justified.
+
+        No INTERNET here either: sync is optional and deferred (architecture.md section 3),
+        and belongs to a later phase if it is ever built.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:label="@string/app_name"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

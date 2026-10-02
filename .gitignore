@@ -1,0 +1,18 @@
+# Gradle
+.gradle/
+build/
+.kotlin/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local, machine-specific
+local.properties
+.idea/
+*.iml
+captures/
+
+# Vendored third-party native binaries (see scripts/fetch-opencv.ps1).
+# Fetched from a pinned, checksum-verified upstream artifact - not source we own.
+third_party/
+
+# Native build outputs
+.cxx/

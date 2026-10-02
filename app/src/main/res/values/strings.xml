@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DrugRepo</string>
+
+    <!--
+        TODO.md Phase 0 task 5, PRD.md FR-012. Officer-facing rationale, shown before the
+        runtime request in Phase 2. Deliberately free of any claim of definitive chemical
+        identification: these results are presumptive and need laboratory confirmation
+        (PRD.md section 1).
+    -->
+    <string name="permission_camera_rationale">DrugRepo needs the camera to photograph a field test card so it can measure the colour change on this device. The analysis runs on this phone only, and any result is presumptive — it still needs laboratory confirmation.</string>
+    <string name="permission_location_rationale">DrugRepo records where the sample was seized so the location can be shown on the digital inventory given to the Magistrate. If the location cannot be determined, the test is still saved and the record is flagged as having no coordinates.</string>
+</resources>

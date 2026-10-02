@@ -4,11 +4,11 @@
 
 
 ## Phase 0 — Project Setup
-- [ ] Initialize native Android (Kotlin) project with C++ JNI support.
-- [ ] Configure CMake and import OpenCV (with aruco module).
+- [x] Initialize native Android (Kotlin) project with C++ JNI support.
+- [x] Configure CMake and import OpenCV (with aruco module).
 - [ ] Add Room, SQLCipher, WorkManager dependencies.
-- [ ] Set up unit-test (JUnit) and instrumented-test (AndroidX) scaffolding, and native test harness for C++.
-- [ ] Declare permissions (CAMERA, ACCESS_FINE_LOCATION) with rationale strings; no IMEI/phone-state permission.
+- [x] Set up unit-test (JUnit) and instrumented-test (AndroidX) scaffolding, and native test harness for C++.
+- [x] Declare permissions (CAMERA + ACCESS_COARSE_LOCATION + ACCESS_FINE_LOCATION) with rationale strings; no IMEI/phone-state permission. ACCESS_COARSE_LOCATION is mandatory alongside ACCESS_FINE_LOCATION: on targetSdk 31+ the platform ignores a FINE-only request and grants neither.
 
 ## Phase 1 — Foundation & Persistence
 - [ ] Define Room entities matching the auditable schema (architecture.md §7).

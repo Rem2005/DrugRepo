@@ -1,0 +1,231 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "899a2d34cd14fe6ceb37bff048c483fa",
+    "entities": [
+      {
+        "tableName": "records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`record_id` TEXT NOT NULL, `sequence_number` INTEGER NOT NULL, `officer_badge_id` TEXT NOT NULL, `timestamp_utc` TEXT NOT NULL, `analysis_status` TEXT NOT NULL, `reagent_type` TEXT NOT NULL, `algorithm_version` TEXT NOT NULL, `reference_data_version` TEXT NOT NULL, `ciede2000_result` TEXT NOT NULL, `presumptive_result` TEXT NOT NULL, `raw_image_sha256` TEXT NOT NULL, `previous_record_hash` TEXT NOT NULL, `record_hash` TEXT NOT NULL, `digital_signature_ecdsa` TEXT NOT NULL, `device_id` TEXT NOT NULL, `imei` TEXT, `make_model` TEXT NOT NULL, `os_version` TEXT NOT NULL, `app_version` TEXT NOT NULL, `key_security_level` TEXT NOT NULL, `attestation_leaf_cert_sha256` TEXT NOT NULL, `available` INTEGER NOT NULL, `latitude` TEXT, `longitude` TEXT, `accuracy_meters` TEXT, `awb_locked` INTEGER NOT NULL, `ae_locked` INTEGER NOT NULL, `manual_controls_supported` INTEGER NOT NULL, `laplacian_variance` TEXT NOT NULL, `glare_threshold_passed` INTEGER NOT NULL, `aruco_detected` INTEGER NOT NULL, `swatch_count` INTEGER NOT NULL, `ccm_applied` INTEGER NOT NULL, `raw_rgb` TEXT NOT NULL, `calibrated_lab` TEXT NOT NULL, PRIMARY KEY(`record_id`))",
+        "fields": [
+          {
+            "fieldPath": "recordId",
+            "columnName": "record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sequenceNumber",
+            "columnName": "sequence_number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "officerBadgeId",
+            "columnName": "officer_badge_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampUtc",
+            "columnName": "timestamp_utc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "analysisStatus",
+            "columnName": "analysis_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reagentType",
+            "columnName": "reagent_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "algorithmVersion",
+            "columnName": "algorithm_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceDataVersion",
+            "columnName": "reference_data_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ciede2000Result",
+            "columnName": "ciede2000_result",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "presumptiveResult",
+            "columnName": "presumptive_result",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawImageSha256",
+            "columnName": "raw_image_sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousRecordHash",
+            "columnName": "previous_record_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordHash",
+            "columnName": "record_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "digitalSignatureEcdsa",
+            "columnName": "digital_signature_ecdsa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.imei",
+            "columnName": "imei",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deviceInformation.makeModel",
+            "columnName": "make_model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.osVersion",
+            "columnName": "os_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.appVersion",
+            "columnName": "app_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.keySecurityLevel",
+            "columnName": "key_security_level",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceInformation.attestationLeafCertSha256",
+            "columnName": "attestation_leaf_cert_sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gpsMetadata.available",
+            "columnName": "available",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gpsMetadata.latitude",
+            "columnName": "latitude",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gpsMetadata.longitude",
+            "columnName": "longitude",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gpsMetadata.accuracyMeters",
+            "columnName": "accuracy_meters",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cameraParameters.awbLocked",
+            "columnName": "awb_locked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cameraParameters.aeLocked",
+            "columnName": "ae_locked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cameraParameters.manualControlsSupported",
+            "columnName": "manual_controls_supported",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageQualityMetrics.laplacianVariance",
+            "columnName": "laplacian_variance",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageQualityMetrics.glareThresholdPassed",
+            "columnName": "glare_threshold_passed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calibrationData.arucoDetected",
+            "columnName": "aruco_detected",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calibrationData.swatchCount",
+            "columnName": "swatch_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calibrationData.ccmApplied",
+            "columnName": "ccm_applied",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reactionRoiColorMeasurements.rawRgb",
+            "columnName": "raw_rgb",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reactionRoiColorMeasurements.calibratedLab",
+            "columnName": "calibrated_lab",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "record_id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '899a2d34cd14fe6ceb37bff048c483fa')"
+    ]
+  }
+}

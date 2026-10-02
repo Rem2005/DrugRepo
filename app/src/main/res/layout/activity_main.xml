@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TODO.md Phase 2 task 1 (officer entry screen) replaces this placeholder.
+    Deliberately inert: it exists so ViewBinding has something to generate and the
+    launcher activity is verifiable in TODO.md Phase 0.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black" />
