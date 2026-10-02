@@ -51,6 +51,7 @@ Goals: To create a native Android application that mathematically normalizes amb
 * **Data Integrity:** A single changed bit in any historical record must cause chain verification to fail for that record and every subsequent record.
 * **Performance:** Image rectification and matrix algebra must execute on background threads via C++ JNI to prevent UI freezing.
 * **Determinism / Testability:** The image pipeline and hashing must be deterministic, so the same input produces byte-identical output and can be re-verified by a third party.
+* Offline Searchable Log: Every test is stored on the device, works without internet, and can be searched and exported as a PDF certificate.
 
 ## 6. Security Limits (stated honestly)
 The hash chain is **tamper-evident, not tamper-proof**. On a rooted device an attacker could delete the newest records or rebuild an unsigned chain. Hardware-backed signatures and attestation make forged records detectable because the private key cannot be exported, but they cannot by themselves prevent deletion. Mitigations: sequence numbers (detect gaps), optional server sync that anchors the latest hash off-device, and periodic export of the chain head. These limits should be disclosed in the project presentation rather than hidden.
