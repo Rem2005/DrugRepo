@@ -59,7 +59,8 @@
 - [ ] Render device ID, attestation level, GPS (or "unavailable"), SHA-256 hash, and signature visibly; IMEI shown only if available.
 - [ ] Include previous_record_hash and sequence number for traceability.
 
-## Phase 8 — Offline Sync (Optional)
+## Phase 8 — Offline Sync 
 - [ ] WorkManager deferred sync job (network-constrained).
 - [ ] mTLS upload of chained records; server returns acknowledgement of latest hash (off-device anchor).
 - [ ] Tests: sync never blocks or alters the local chain.
+Offline Searchable Log: Every test is stored on the device, works without internet, and can be searched and exported as a PDF certificate.
