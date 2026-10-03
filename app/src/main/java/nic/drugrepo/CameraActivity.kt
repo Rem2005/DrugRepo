@@ -18,6 +18,7 @@ import android.view.Surface
 import android.view.TextureView
 import android.widget.Toast
 import nic.drugrepo.databinding.ActivityCameraBinding
+import nic.drugrepo.analysis.AnalysisProfile
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Collections
@@ -139,11 +140,16 @@ class CameraActivity : Activity() {
                 buffer.get(bytes)
                 image.close()
                 FileOutputStream(imageFile).use { it.write(bytes) }
+                // Forwarded verbatim. There is no mode selector on any screen; this is the one
+                // seam that selects the reference profile, and it defaults to the field path when
+                // absent (see AnalysisProfile).
+                val profile = intent.getStringExtra(AnalysisProfile.EXTRA)
                 runOnUiThread {
-                    val intent = Intent(this@CameraActivity, AnalysisActivity::class.java)
-                    intent.putExtra("image", imageFile!!.absolutePath)
-                    intent.putExtra("badgeId", badgeId)
-                    startActivity(intent)
+                    val next = Intent(this@CameraActivity, AnalysisActivity::class.java)
+                    next.putExtra("image", imageFile!!.absolutePath)
+                    next.putExtra("badgeId", badgeId)
+                    next.putExtra(AnalysisProfile.EXTRA, profile)
+                    startActivity(next)
                     finish()
                 }
             }

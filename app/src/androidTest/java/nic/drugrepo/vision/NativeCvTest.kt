@@ -1,6 +1,7 @@
 package nic.drugrepo.vision
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import nic.drugrepo.analysis.AnalysisMode
 import nic.drugrepo.analysis.RealCvTestAnalyzer
 import nic.drugrepo.db.PresumptiveResult
 import org.junit.Assert.assertEquals
@@ -106,15 +107,80 @@ class NativeCvTest {
         // A result is unreadable months later without these, and an unvalidated profile has to say
         // so in the version string, not only in a flag the UI might ignore.
         assertTrue(
-            "version should be marked provisional: ${colorimetry.profileVersion}",
-            colorimetry.profileVersion.contains("PROVISIONAL"),
+            "version should be marked unvalidated: ${colorimetry.profileVersion}",
+            colorimetry.profileVersion.contains("UNVALIDATED"),
         )
         assertFalse("profile must not claim validation", colorimetry.isValidatedProfile)
         assertTrue(
             "provenance must say where the numbers came from: ${colorimetry.profileProvenance}",
             colorimetry.profileProvenance.isNotBlank(),
         )
-        assertEquals("MARQUIS", colorimetry.reagentType)
+        // The default is the source-backed field profile, never the demonstration one.
+        assertEquals(CvColorimetryMeasurement.PROFILE_KIND_FIELD, colorimetry.profileKind)
+        assertFalse(colorimetry.isSyntheticProfile)
+        assertEquals("NCB_STANDARD_NARCOTICS_DD_KIT", colorimetry.reagentType)
+        // Official sources supply colour names and no numbers, so the numbers here are not from
+        // them and the version string must not imply otherwise.
+        assertTrue(
+            "provenance must disclaim numerical calibration: ${colorimetry.profileProvenance}",
+            colorimetry.profileProvenance.contains("NUMERICAL CALIBRATION: UNVALIDATED"),
+        )
+    }
+
+    @Test
+    fun theSamePipelineServesTheSyntheticProfileAndLabelsIt() {
+        val measurement = NativeCv.processImage(
+            syntheticCardJpeg(),
+            VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO,
+        )
+        assertTrue("status was ${measurement.status}", measurement.isValid)
+        val colorimetry = measurement.colorimetry
+
+        // Same geometry, same colour maths, one pipeline. Only the profile and therefore the
+        // labelling differs.
+        val field = NativeCv.processImage(syntheticCardJpeg()).colorimetry
+        assertEquals(field.rectifiedWidth, colorimetry.rectifiedWidth)
+        assertEquals(field.swatchCount, colorimetry.swatchCount)
+        assertEquals(field.deltaE2000, colorimetry.deltaE2000, 0.0)
+
+        assertEquals(
+            CvColorimetryMeasurement.PROFILE_KIND_SYNTHETIC_DEMO,
+            colorimetry.profileKind,
+        )
+        assertTrue(colorimetry.isSyntheticProfile)
+        assertFalse(colorimetry.isValidatedProfile)
+        // The same bytes through the field profile: identical measurements, refused classification.
+        // That single difference is the separation.
+        assertEquals(CvColorimetryMeasurement.PROFILE_KIND_FIELD, field.profileKind)
+        assertFalse(field.isSyntheticProfile)
+        assertEquals(
+            "the field profile has no validated calibration, so it may only be INCONCLUSIVE",
+            CvColorimetryMeasurement.CLASSIFICATION_INCONCLUSIVE,
+            field.classification,
+        )
+
+        // These are the strings a sealed record and a screen both key off months later.
+        assertEquals(
+            "a demonstration profile must not name a reagent",
+            "SYNTHETIC_DEMONSTRATION_ONLY",
+            colorimetry.reagentType,
+        )
+        assertTrue(
+            "version must say synthetic: ${colorimetry.profileVersion}",
+            colorimetry.profileVersion.contains("SYNTHETIC_DEMONSTRATION_ONLY"),
+        )
+        // A demonstration profile exists to demonstrate classification. The fixture is grey on grey
+        // so its dE00 sits inside the demonstration profile's match band, and the same bytes
+        // through the field profile above were refused. Same pipeline, same maths, different
+        // reference data - which is the whole point of the separation.
+        assertTrue(
+            "fixture dE00 ${colorimetry.deltaE2000} should be inside the demonstration match band",
+            colorimetry.deltaE2000 <= DEMONSTRATION_MATCH_AT_OR_BELOW,
+        )
+        assertEquals(
+            CvColorimetryMeasurement.CLASSIFICATION_POSITIVE,
+            colorimetry.classification,
+        )
     }
 
     @Test
@@ -165,7 +231,7 @@ class NativeCvTest {
     }
 
     @Test
-    fun analyzerCarriesTheColourStageAndMarksTheProfileUnvalidated() {
+    fun fieldAnalyzerStaysInconclusiveAndSaysWhy() {
         val file = File.createTempFile("drugrepo-cv", ".jpg")
         file.writeBytes(syntheticCardJpeg())
         file.deleteOnExit()
@@ -176,27 +242,68 @@ class NativeCvTest {
         assertTrue("analyzer returned no measurement", measurement != null && measurement.isValid)
         val colorimetry = measurement!!.colorimetry
 
-        // dE00 is now computed, so it must be a number rather than the old "not computed".
+        // dE00 is computed, so it must be a number rather than the old "not computed".
         assertFalse(result.ciede2000Result == RealCvTestAnalyzer.NOT_COMPUTED)
         assertEquals(String.format("%.2f", colorimetry.deltaE2000), result.ciede2000Result)
 
-        // The classification comes from the profile's table, so it is reported - but the profile
-        // is placeholder data, so the result is still flagged demo and the outcome is only
-        // presumptive.
+        // The default analyzer is the field path, and the field profile has no validated numerical
+        // calibration. So the outcome is INCONCLUSIVE even though the fixture's colour is inside
+        // the pipeline's demonstration band - and the record is marked FIELD, not demo.
+        assertEquals(AnalysisMode.FIELD, result.mode)
         assertEquals(
-            when (colorimetry.classification) {
-                CvColorimetryMeasurement.CLASSIFICATION_POSITIVE -> PresumptiveResult.POSITIVE
-                CvColorimetryMeasurement.CLASSIFICATION_NEGATIVE -> PresumptiveResult.NEGATIVE
-                else -> PresumptiveResult.INCONCLUSIVE
-            },
+            "no validated calibration may yield a field finding",
+            PresumptiveResult.INCONCLUSIVE,
             result.presumptiveResult,
         )
-        assertTrue("unvalidated profile must keep the demo flag set", result.demo)
+        // demo stays true here for a different reason than in demo mode: the measurement is real
+        // but the boundaries interpreting it are placeholders, so the record must not be readable
+        // as a validated finding. What it must NOT become is synthetic wording.
+        assertTrue(
+            "an unvalidated profile must keep the demo flag set",
+            result.demo,
+        )
         assertTrue("message must carry the measured means: ${result.message}", result.message.contains("mean"))
         assertTrue("message must state dE00: ${result.message}", result.message.contains("dE00"))
         assertTrue(
             "message must say the profile is unvalidated: ${result.message}",
             result.message.contains("UNVALIDATED"),
+        )
+        assertFalse(
+            "the field path must not borrow synthetic wording: ${result.message}",
+            result.message.contains("SYNTHETIC"),
+        )
+    }
+
+    @Test
+    fun demonstrationAnalyzerClassifiesAndLabelsEveryResultSynthetic() {
+        val file = File.createTempFile("drugrepo-cv-demo", ".jpg")
+        file.writeBytes(syntheticCardJpeg())
+        file.deleteOnExit()
+
+        val result = RealCvTestAnalyzer(VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO).analyze(file)
+
+        assertEquals(AnalysisMode.SYNTHETIC_DEMONSTRATION, result.mode)
+        assertTrue("demo flag must be set", result.demo)
+        // The point of the demonstration mode: the colour comparison actually resolves.
+        assertEquals(
+            "a synthetic match must be reported, not suppressed",
+            PresumptiveResult.POSITIVE,
+            result.presumptiveResult,
+        )
+        assertFalse(result.ciede2000Result == RealCvTestAnalyzer.NOT_COMPUTED)
+        // Even a POSITIVE outcome may not read as a finding in any of the strings a record or a
+        // certificate carries.
+        assertTrue(
+            "message must disclaim the demonstration: ${result.message}",
+            result.message.contains("DEMONSTRATION"),
+        )
+        assertFalse(
+            "the synthetic reagent field must never name a reagent: ${result.message}",
+            result.message.contains("NCB_STANDARD_NARCOTICS_DD_KIT"),
+        )
+        assertFalse(
+            "no identification language: ${result.message}",
+            result.message.contains("identified"),
         )
     }
 
@@ -209,6 +316,7 @@ class NativeCvTest {
         val result = RealCvTestAnalyzer().analyze(file)
 
         assertEquals(PresumptiveResult.INCONCLUSIVE, result.presumptiveResult)
+        assertEquals(AnalysisMode.FIELD, result.mode)
         assertEquals(RealCvTestAnalyzer.NOT_COMPUTED, result.ciede2000Result)
         assertTrue(result.message.contains("no reference card markers found in frame"))
     }
@@ -231,5 +339,12 @@ class NativeCvTest {
 
         @JvmStatic
         private external fun blankFrameJpeg(): ByteArray
+
+        /**
+         * The demonstration profile's match band, restated so a test failure says which side of a
+         * number moved. If the fixture's dE00 ever drifts above it, the synthetic-classification
+         * assertion below must fail with that visible rather than as a bare classification mismatch.
+         */
+        private const val DEMONSTRATION_MATCH_AT_OR_BELOW = 2.0
     }
 }

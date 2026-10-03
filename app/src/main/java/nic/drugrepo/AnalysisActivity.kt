@@ -3,6 +3,7 @@ package nic.drugrepo
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import nic.drugrepo.analysis.AnalysisProfile
 import nic.drugrepo.analysis.DemoTestAnalyzer
 import nic.drugrepo.analysis.RealCvTestAnalyzer
 import nic.drugrepo.analysis.TestAnalyzer
@@ -20,10 +21,12 @@ class AnalysisActivity : Activity() {
         val badgeId = intent.getStringExtra("badgeId") ?: "DEMO-0001"
         // RealCvTestAnalyzer is the production path: the captured JPEG goes through C++/OpenCV.
         // DemoTestAnalyzer stays reachable explicitly ("demo") as the hash-based fallback analyzer.
+        // The reference profile is a separate switch: it selects which reference DATA the same
+        // pipeline is compared against (source-backed NCB by default, synthetic only when asked).
         val analyzer: TestAnalyzer = if (intent.getStringExtra("analyzer") == "demo") {
             DemoTestAnalyzer()
         } else {
-            RealCvTestAnalyzer()
+            RealCvTestAnalyzer(AnalysisProfile.indexOf(intent.getStringExtra(AnalysisProfile.EXTRA)))
         }
 
         Thread {

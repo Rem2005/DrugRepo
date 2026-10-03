@@ -4,6 +4,7 @@ import nic.drugrepo.db.PresumptiveResult
 import nic.drugrepo.vision.CvColorimetryMeasurement
 import nic.drugrepo.vision.CvMeasurement
 import nic.drugrepo.vision.NativeCv
+import nic.drugrepo.vision.VisionNative
 import java.io.File
 
 /**
@@ -15,23 +16,37 @@ import java.io.File
  * CIEDE2000 difference between the reference colour and the reaction colour, and the presumptive
  * outcome the profile's boundary table gives for that difference.
  *
- * What is NOT real yet: the profile. The shipped card profile
- * (`app/src/main/cpp/reference_profile.cpp`) carries placeholder marker ids, swatch positions, a
- * placeholder reaction window and demonstration dE00 boundaries, all flagged UNVALIDATED. So the
- * numbers are measurements and the classification is provisional, and this class says so on every
- * result it returns: [AnalysisResult.demo] stays true while the profile is unvalidated, and the
- * message names the profile version.
+ * There is ONE analyzer and ONE pipeline. The [profileIndex] constructor argument selects which
+ * reference DATA the same measurement is compared against, and with it which claim the result may
+ * make:
  *
- * Replacing the placeholders with validated kit data turns demo off here and nowhere else.
+ *  - [VisionNative.PROFILE_INDEX_FIELD] (the default, and the field path) uses the source-backed
+ *    NCB profile (`app/src/main/cpp/reference_profile.cpp`). Its official qualitative colour names
+ *    are protocol data, not calibration data, and no official source publishes the RGB, Lab or
+ *    dE00 values a finding would need. So this path returns INCONCLUSIVE with the reason stated,
+ *    and says so on every result: [AnalysisResult.demo] stays true while the profile is
+ *    unvalidated, [AnalysisResult.mode] is [AnalysisMode.FIELD], and the message names the profile
+ *    version and the missing calibration.
  *
- * The SHA-256-derived demo behaviour lives in [DemoTestAnalyzer], which remains the explicit
+ *  - [VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO] uses DEMO_SYNTHETIC_PROFILE_V1: a synthetic colour
+ *    dataset whose only purpose is to demonstrate that this same pipeline executes end to end. It
+ *    may produce DEMONSTRATIVE POSITIVE or DEMONSTRATIVE NO MATCH, both of which are labelled
+ *    SYNTHETIC everywhere they appear and are not presumptive findings.
+ *
+ * The field path can never reach the synthetic profile's data, and the synthetic path can never
+ * produce a field claim; see docs/CV_PIPELINE.md.
+ *
+ * The SHA-256-derived MOCK behaviour lives in [DemoTestAnalyzer], which remains the explicit
  * fallback analyzer; this class never hashes anything.
  */
-class RealCvTestAnalyzer : TestAnalyzer {
+class RealCvTestAnalyzer(
+    private val profileIndex: Int = VisionNative.PROFILE_INDEX_FIELD,
+) : TestAnalyzer {
 
     override fun analyze(imageFile: File): AnalysisResult {
-        val measurement = NativeCv.processImage(imageFile)
+        val measurement = NativeCv.processImage(imageFile, profileIndex)
         val colorimetry = measurement.colorimetry
+        val synthetic = colorimetry.isSyntheticProfile
         return if (measurement.isValid) {
             AnalysisResult(
                 presumptiveResult = toPresumptiveResult(colorimetry.classification),
@@ -40,8 +55,9 @@ class RealCvTestAnalyzer : TestAnalyzer {
                 // the boundaries interpreting it are placeholders, so this must not read as a
                 // validated result (AGENTS.md directive 7).
                 demo = !colorimetry.isValidatedProfile,
-                message = describe(measurement),
+                message = describe(measurement, synthetic),
                 cvMeasurement = measurement,
+                mode = if (synthetic) AnalysisMode.SYNTHETIC_DEMONSTRATION else AnalysisMode.FIELD,
             )
         } else {
             // No measurement is still an honest result: the officer is told the capture could
@@ -53,6 +69,7 @@ class RealCvTestAnalyzer : TestAnalyzer {
                 message = "CV measurement failed (${measurement.statusLabel}); " +
                     "no colour values were recorded",
                 cvMeasurement = measurement,
+                mode = if (synthetic) AnalysisMode.SYNTHETIC_DEMONSTRATION else AnalysisMode.FIELD,
             )
         }
     }
@@ -66,9 +83,9 @@ class RealCvTestAnalyzer : TestAnalyzer {
     /**
      * Measured numbers, then the claim they support and the claim they do not. Everything before
      * the classification is read straight off the measurement; everything after it is labelled
-     * unvalidated so the two are never confused.
+     * unvalidated or synthetic so the two are never confused.
      */
-    private fun describe(m: CvMeasurement): String {
+    private fun describe(m: CvMeasurement, synthetic: Boolean): String {
         val colorimetry = m.colorimetry
         val geometry = when (m.geometrySource) {
             CvMeasurement.GEOMETRY_HOMOGRAPHY_RECTIFIED ->
@@ -85,19 +102,27 @@ class RealCvTestAnalyzer : TestAnalyzer {
         } else {
             "no colour correction (profile has no authoritative patch colours)"
         }
-        val validity = if (colorimetry.isValidatedProfile) {
-            "profile ${colorimetry.profileVersion} is validated"
-        } else {
-            "profile ${colorimetry.profileVersion} is UNVALIDATED placeholder data"
-        }
-        return "Measured from the captured image (${m.imageWidth}x${m.imageHeight}). " +
+        val measurements = "Measured from the captured image (${m.imageWidth}x${m.imageHeight}). " +
             "Reference region ${m.referenceRect.width}x${m.referenceRect.height} mean " +
             "${colorimetry.referenceRaw.format()}; reaction ROI " +
             "${m.reactionRect.width}x${m.reactionRect.height} mean ${colorimetry.reactionRaw.format()}. " +
             "Reference Lab ${colorimetry.referenceLab.format()}; reaction Lab " +
             "${colorimetry.reactionLab.format()}; dE00 ${String.format("%.2f", colorimetry.deltaE2000)}. " +
-            "Geometry: $geometry. Calibration: $calibration. " +
-            "Outcome: ${colorimetry.classificationLabel}, presumptive only. $validity."
+            "Geometry: $geometry. Calibration: $calibration. "
+        return if (synthetic) {
+            measurements + SYNTHETIC_CLAIM.format(colorimetry.classificationLabel) +
+                " Profile ${colorimetry.profileVersion} is SYNTHETIC DEMONSTRATION DATA: " +
+                "mathematically derived from synthetic colour anchors, not measured from a " +
+                "physical kit, not official NCB data, not forensically validated."
+        } else {
+            // The field path's conclusion is fixed by the science, not by this frame: with no
+            // validated numerical calibration there is nothing to compare a dE00 against, so the
+            // only defensible outcome is INCONCLUSIVE and the reason has to travel with it.
+            measurements + "Outcome: ${colorimetry.classificationLabel}. Profile " +
+                "${colorimetry.profileVersion} is UNVALIDATED: validated numerical calibration " +
+                "unavailable, so NO REAL DRUG IDENTIFICATION WAS PERFORMED. " +
+                "Reference data is source-backed qualitative protocol data only."
+        }
     }
 
     companion object {
@@ -106,5 +131,12 @@ class RealCvTestAnalyzer : TestAnalyzer {
          * string would read as a formatting glitch; this states the absence outright.
          */
         const val NOT_COMPUTED = "not computed"
+
+        /**
+         * Opening the synthetic mode's claim sentence. SYNTHETIC and DEMONSTRATION ONLY appear in
+         * every non-inconclusive synthetic message, so the wording cannot drift between screens.
+         */
+        private const val SYNTHETIC_CLAIM =
+            "SYNTHETIC DEMONSTRATION ONLY - outcome: %s. NOT A REAL DRUG TEST. "
     }
 }

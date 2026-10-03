@@ -122,6 +122,15 @@ class CvColorimetryMeasurement(
     val profileId: Int,
     /** ProfileValidation: 0 = UNVALIDATED placeholders, 1 = backed by authoritative kit data. */
     val profileValidation: Int,
+    /**
+     * ProfileKind: 0 = field data, 1 = SYNTHETIC demonstration data.
+     *
+     * This is the field a result's labelling keys off, and it is why it is an int on the JNI
+     * boundary rather than something inferred from [profileVersion]: a synthetic profile's version
+     * string could be edited to say something reassuring, whereas its kind is set once, in the
+     * profile table, next to the data it applies to.
+     */
+    val profileKind: Int,
     /** CvClassification: 0 = inconclusive, 1 = presumptive positive, 2 = presumptive negative. */
     val classification: Int,
     /** Reference swatches actually measured in this frame. */
@@ -164,6 +173,13 @@ class CvColorimetryMeasurement(
     /** True when these numbers come from validated kit data rather than placeholders. */
     val isValidatedProfile: Boolean get() = profileValidation == VALIDATION_VALIDATED
 
+    /**
+     * True when this measurement was compared against SYNTHETIC demonstration anchors. Nothing
+     * measured this way is a finding: it demonstrates that the pipeline runs, and every result
+     * built on it must say so.
+     */
+    val isSyntheticProfile: Boolean get() = profileKind == PROFILE_KIND_SYNTHETIC_DEMO
+
     val referenceRaw: RgbMean get() = RgbMean(referenceRawR, referenceRawG, referenceRawB)
 
     val referenceCorrected: RgbMean get() = RgbMean(referenceR, referenceG, referenceB)
@@ -187,6 +203,12 @@ class CvColorimetryMeasurement(
     companion object {
         const val VALIDATION_UNVALIDATED = 0
         const val VALIDATION_VALIDATED = 1
+
+        /** ProfileKind.kField: source-backed reference data intended for real casework. */
+        const val PROFILE_KIND_FIELD = 0
+
+        /** ProfileKind.kSyntheticDemonstration: synthetic anchors, demonstration only. */
+        const val PROFILE_KIND_SYNTHETIC_DEMO = 1
 
         const val CLASSIFICATION_INCONCLUSIVE = 0
         const val CLASSIFICATION_POSITIVE = 1

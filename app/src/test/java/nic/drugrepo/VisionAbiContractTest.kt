@@ -25,10 +25,10 @@ class VisionAbiContractTest {
 
     @Test
     fun abiVersionMatchesTheCxxHeader() {
-        // 3 since the homography rectification and the colour stage were added. Kept as an
-        // explicit number rather than a regex over the header so the JVM gate still runs where the
-        // C++ one cannot.
-        assertEquals(3, VisionNative.VISION_ABI_VERSION)
+        // 4 since the reference profile index was threaded through nativeProcessImage and the
+        // colour stage began reporting ProfileKind. Kept as an explicit number rather than a regex
+        // over the header so the JVM gate still runs where the C++ one cannot.
+        assertEquals(4, VisionNative.VISION_ABI_VERSION)
     }
 
     @Test
@@ -42,11 +42,12 @@ class VisionAbiContractTest {
             java.lang.reflect.Modifier.isStatic(version.modifiers),
         )
 
-        // Parameter types are declared per entry point: nativeProcessImage takes the JPEG bytes.
+        // Parameter types are declared per entry point: nativeProcessImage takes the JPEG bytes
+        // and the reference profile index.
         val entryPoints = mapOf(
             "nativeOpenCvVersion" to emptyArray(),
             "nativeArucoSelfTest" to emptyArray(),
-            "nativeProcessImage" to arrayOf(ByteArray::class.java),
+            "nativeProcessImage" to arrayOf(ByteArray::class.java, Int::class.javaPrimitiveType),
         )
         for ((name, parameterTypes) in entryPoints) {
             val method = type.getDeclaredMethod(name, *parameterTypes)
@@ -59,30 +60,29 @@ class VisionAbiContractTest {
 
     @Test
     fun colorimetryResultHasTheShapeTheJniConstructorExpects() {
-        // The C++ side calls one constructor with an exact 29-argument descriptor
+        // The C++ side calls one constructor with an exact 30-argument descriptor
         // (kColorimetryCtorSignature). Reflection counts the same arguments here, so a Kotlin
         // signature change and the native descriptor cannot drift apart without a failure on the
         // JVM instead of NoSuchMethodError on a device mid-capture.
         val constructor = CvColorimetryMeasurement::class.java.constructors.single()
         val parameters = constructor.parameters
-        assertEquals(29, parameters.size)
-        assertEquals(Int::class.java, parameters[0].type)
-        assertEquals(Int::class.java, parameters[1].type)
-        assertEquals(Int::class.java, parameters[2].type)
-        assertEquals(Int::class.java, parameters[3].type)
-        assertEquals(Int::class.java, parameters[4].type)
-        assertEquals(Int::class.java, parameters[5].type)
-        assertEquals(java.lang.Boolean.TYPE, parameters[6].type)
-        // Nineteen doubles, then three strings. A Double where an Int was declared would still
-        // compile on both sides and only fail in JNI argument marshalling at runtime.
-        for (index in 7..25) {
+        assertEquals(30, parameters.size)
+        // Seven ints: profileId, profileValidation, profileKind, classification, swatchCount,
+        // rectifiedWidth, rectifiedHeight. A Double where an Int was declared would still compile
+        // on both sides and only fail in JNI argument marshalling at runtime.
+        for (index in 0..6) {
+            assertEquals("parameter $index must be an Int", Int::class.java, parameters[index].type)
+        }
+        assertEquals(java.lang.Boolean.TYPE, parameters[7].type)
+        // Nineteen doubles, then three strings.
+        for (index in 8..26) {
             assertEquals(
                 "parameter $index must be a Double",
                 java.lang.Double.TYPE,
                 parameters[index].type,
             )
         }
-        for (index in 26..28) {
+        for (index in 27..29) {
             assertEquals(
                 "parameter $index must be a String",
                 java.lang.String::class.java,

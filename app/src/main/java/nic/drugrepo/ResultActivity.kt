@@ -2,9 +2,10 @@ package nic.drugrepo
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
+import nic.drugrepo.analysis.AnalysisMode
 import nic.drugrepo.analysis.AnalysisResult
 import nic.drugrepo.databinding.ActivityResultBinding
 import nic.drugrepo.db.AuditableRecord
@@ -38,13 +39,28 @@ class ResultActivity : Activity() {
         val badgeId = intent.getStringExtra("badgeId") ?: "DEMO-0001"
         val imagePath = intent.getStringExtra("imagePath")
 
-        binding.tvResult.text = result.presumptiveResult.name
+        // The one thing this screen must never blur: a synthetic demonstration and a real field
+        // result are different kinds of statement. Both headline and badge are derived from
+        // AnalysisResult.mode, so no downstream screen can render a demonstration as a finding.
+        val synthetic = result.mode == AnalysisMode.SYNTHETIC_DEMONSTRATION
+        binding.tvResult.text = headline(result, synthetic)
         binding.tvResult.setTextColor(resultColor(result.presumptiveResult))
-        binding.tvDemo.text = if (result.demo) "DEMO/MOCK" else ""
-        binding.tvDemo.visibility = if (result.demo) View.VISIBLE else View.GONE
+        binding.tvDemo.text = if (synthetic) SYNTHETIC_BADGE else FIELD_BADGE
+        binding.tvDemo.setBackgroundTintList(
+            ColorStateList.valueOf(
+                getColor(if (synthetic) R.color.demo_bg else R.color.result_inconclusive_bg),
+            ),
+        )
+        binding.tvDemo.setTextColor(
+            getColor(if (synthetic) R.color.demo_text else R.color.result_inconclusive_text),
+        )
         binding.tvOfficer.text = badgeId
         binding.tvDeltaE.text = "dE00 " + result.ciede2000Result
-        binding.tvDetails.text = result.message
+        binding.tvDetails.text = if (synthetic) {
+            "$SYNTHETIC_WARNING\n\n${result.message}"
+        } else {
+            result.message
+        }
 
         binding.tvBack.setOnClickListener {
             finish()
@@ -175,6 +191,22 @@ class ResultActivity : Activity() {
         )
     }
 
+    /**
+     * The headline outcome. A synthetic match is worded as a demonstration of the colour
+     * comparison, never as a presumptive result, because it is not one: nothing was validated.
+     * A field result keeps the enum's own name so the record and the screen cannot diverge.
+     */
+    private fun headline(result: AnalysisResult, synthetic: Boolean): String =
+        if (!synthetic) {
+            result.presumptiveResult.name
+        } else {
+            when (result.presumptiveResult) {
+                PresumptiveResult.POSITIVE -> "DEMONSTRATIVE POSITIVE"
+                PresumptiveResult.NEGATIVE -> "DEMONSTRATIVE NO MATCH"
+                else -> "INCONCLUSIVE"
+            }
+        }
+
     /** Presentation only: a presumptive result gets a colour, never a stronger claim. */
     private fun resultColor(result: PresumptiveResult): Int = getColor(
         when (result) {
@@ -183,4 +215,21 @@ class ResultActivity : Activity() {
             PresumptiveResult.INCONCLUSIVE -> R.color.result_inconclusive_text
         }
     )
+
+    private companion object {
+        /**
+         * Badge text. Wording is fixed here rather than derived, so "SYNTHETIC" and "DEMONSTRATION
+         * ONLY" cannot go missing from a synthetic result screen through a refactor.
+         */
+        const val SYNTHETIC_BADGE = "SYNTHETIC DEMONSTRATION - DEMONSTRATION ONLY"
+        const val FIELD_BADGE = "FIELD / REAL MODE - UNVALIDATED"
+
+        /** Prepended to the details of every synthetic result. Never shown for a field result. */
+        const val SYNTHETIC_WARNING =
+            "SYNTHETIC DATA. DEMONSTRATION ONLY. NOT A REAL DRUG TEST. " +
+                "NOT FORENSICALLY VALIDATED. The colour anchors compared here are synthetic: they " +
+                "are not measured from a physical NCB kit and are not official NCB data. This " +
+                "result demonstrates that the CV colour-comparison workflow runs; it is not a " +
+                "presumptive finding and no drug has been identified."
+    }
 }

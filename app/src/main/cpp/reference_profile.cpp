@@ -2,25 +2,34 @@
 
 namespace {
 
-// PROVISIONAL PROFILE - READ THIS BEFORE CHANGING ANY NUMBER BELOW.
+// TWO PROFILES, ONE PIPELINE. READ THIS BEFORE CHANGING ANY NUMBER BELOW.
 //
-// Nothing in this file came from a kit manufacturer, a printed NCB reference card, or a published
-// colour dataset. The project documentation specifies only the SHAPE of the data: four corner
-// ArUco markers, rectification to 500x500, a CCM from at least 6 swatches, and a configurable
-// dE00 boundary table with an INCONCLUSIVE band. Every concrete value here is an arbitrary
-// placeholder that makes the pipeline executable end to end.
+// This file is the only place in the C++ tree that describes reference data. The CV stage reads
+// whichever profile it is handed and computes identically either way; the profile decides what the
+// numbers may be compared against and what the result is allowed to claim. Nothing here may be
+// presented as kit data unless it came from a kit.
 //
-// What is real: the marker ids are real ids of a real ArUco dictionary, and the rectangles are real
-// rectangles. What is arbitrary: WHICH ids, WHERE the patches sit, WHERE the reaction window sits,
-// and the two dE00 boundaries.
+// PROFILE 1 - NCB-STANDARD-NARCOTICS-DD-KIT (ProfileKind::kField)
+// Qualitative protocol transcribed from the NICFS Forensic Guide, Chapter 8, Figure 8.13. Official,
+// and strictly qualitative: it names colours in words and never supplies a number. Every numeric
+// field below (marker ids, centres, swatch rectangles, reaction window, dE00 boundaries) is
+// therefore still an arbitrary placeholder.
 //
-// Replacing this file's contents with validated data is the intended path to a non-demo build:
+// PROFILE 2 - DEMO_SYNTHETIC_PROFILE_V1 (ProfileKind::kSyntheticDemonstration)
+// Synthetic hex anchors whose only purpose is to prove the shared pipeline executes end to end.
+// They are not official NCB data, not physical calibration data, not forensic validation data and
+// not a drug-classification dataset. They never enter profile 1: the table is constexpr and
+// profile 1's syntheticAnchorCount is 0, so there is no field on it that could hold one.
+//
+// Replacing either profile's contents with validated data is the intended path to a non-demo build:
 // fill in the marker ids and centres from the printed card, fill in the patch rectangles and their
 // measured ideal colours, set validation to kValidated, set calibrationMode to
 // kColorCorrectionMatrix, and bump the version. The pipeline must not be edited to do that.
 
 // Marker ids 1..4 of DICT_4X4_50, in card order top-left, top-right, bottom-right, bottom-left.
 // PROVISIONAL: these are the first four ids of the dictionary, not ids printed on any real card.
+// Shared by both profiles because neither physical card has been characterised; when a real card
+// is measured, the synthetic profile's ids change with it and its demonstration label does not.
 constexpr int kProvisionalMarkerIds[4] = {1, 2, 3, 4};
 
 // PROVISIONAL: marker centres inset 10% from each card corner.
@@ -51,14 +60,132 @@ constexpr int kProvisionalArucoDictionary = 0;
 
 // PROVISIONAL: 2.0 and 5.0 are demonstration boundaries chosen to leave a visible INCONCLUSIVE
 // band between them. They are NOT the reaction threshold of any reagent.
-constexpr ClassificationPolicy kProvisionalClassification = {2.0, 5.0, true};
+constexpr ClassificationPolicy kProvisionalClassification = {2.0, 5.0, true, false};
+
+// DEMONSTRATION ONLY: the same two numbers, restated under the profile they belong to so that a
+// reader of the synthetic table never has to go and find the field one. A synthetic profile is
+// allowed to classify (that is the demonstration); the result is labelled DEMONSTRATIVE at the UI
+// and reference_data_version boundaries and is never a presumptive finding.
+constexpr ClassificationPolicy kSyntheticDemonstrationClassification = {2.0, 5.0, true, false};
+
+// NICFS Forensic Guide, Chapter 8, Figure 8.13. These are verbatim qualitative outcomes from
+// the official guide's Tests A, B and E. The guide excerpt does not show Tests C or D, so this
+// table deliberately does not infer, name or implement them.
+constexpr QualitativeTestProtocol kNcbQualitativeProtocols[3] = {
+    {
+        "TEST A",
+        "Opium, morphine, codeine, heroin, amphetamines and mescaline",
+        {{"Opium: place a match-head-sized sample on the spot plate."},
+         {"Opium: add 2 or 3 drops of water and smear with the supplied glass rod or spatula for 1 or 2 minutes."},
+         {"Opium: transfer one drop of the liquid to another part of the spot plate; add 1 drop of A1, then 3 drops of A2."},
+         {"Morphine, codeine, heroin, amphetamines and mescaline: place a match-head-sized sample on the spot plate."},
+         {"For morphine, codeine, heroin, amphetamines and mescaline: add 1 drop of A1, then 3 drops of A2."}},
+        5,
+        {{"Opium", "red-brown"}, {"Morphine", "purple to grey"},
+         {"Codeine", "pink to grey"}, {"Heroin", "pink to mauve"},
+         {"Amphetamines", "orange to dark grey"}, {"Mescaline", "orange to red"}},
+        6,
+        "Observe the qualitative colour transition after A1 then A2.",
+    },
+    {
+        "TEST B",
+        "Marijuana, hashish and hashish oil",
+        {{"Place a match-head-sized sample in a test tube supplied with the kit."},
+         {"Add a match-head-sized amount of B1."}, {"Add 25 drops of B2 and shake for 1 minute."},
+         {"Add 25 drops of B3 and shake for 2 minutes."}, {"Allow the test tube to stand for 2 minutes."}},
+        5,
+        {{"Marijuana", "lower liquid layer red to light pink"},
+         {"Hashish", "lower liquid layer red to light pink"},
+         {"Hashish oil", "lower liquid layer red to light pink"}},
+        3,
+        "Read only the lower liquid layer; ignore the upper layer.",
+    },
+    {
+        "TEST E",
+        "Cocaine and methaqualone",
+        {{"For E1/E2: if the material is a tablet, grind it to a fine powder; place a match-head-sized sample in a supplied test tube."},
+         {"Add 1 drop of E1 and shake for 10 seconds."}, {"Add 1 drop of E2 and shake for 10 seconds."},
+         {"For E3/E4 differentiation: place a small amount of suspected material in a test tube; add 5 drops of E3."},
+         {"Add 3 drops of E4."}},
+        5,
+        {{"Cocaine (E1 + E2)", "blue"}, {"Methaqualone (E1 + E2)", "blue"},
+         {"Cocaine (E3 + E4)", "green"}, {"Methaqualone (E3 + E4)", "yellow"}},
+        4,
+        "E1 + E2 produces blue; E3 + E4 differentiates cocaine (green) from methaqualone (yellow).",
+    },
+};
+
+// SYNTHETIC DEMONSTRATION DATASET - NOT OFFICIAL DATA OF ANY KIND.
+//
+// Ten anchors, stored exactly as the demonstration dataset defines them. They are:
+//   * not measured from a physical NCB kit;
+//   * not published by NCB, NICFS, ISO or any other authority;
+//   * not reference colours for any reagent;
+//   * not a drug-classification dataset.
+//
+// Their only purpose is to demonstrate that the shared pipeline performs image -> geometry -> ROI
+// -> colour measurement -> Lab -> CIEDE2000 -> reference comparison -> a labelled demonstration
+// outcome. Note in particular that "FLOW III / TEST C" below is the SYNTHETIC demonstration
+// dataset's own Test C entry: the field profile above has no Test C at all, and these numbers must
+// never be copied into it.
+//
+// role1/hex1 is always the starting or principal colour; role2/hex2 is the second colour of a
+// two-colour transition, or nullptr for a single-colour anchor. Empty timingNote means the dataset
+// specifies no timing.
+// Unsized on purpose: the array's own size is then exactly the number of anchors written below,
+// so the static_assert below cannot drift away from the data the way a declared capacity can.
+constexpr SyntheticAnchor kSyntheticAnchors[] = {
+    // --- Flow I / Test A -------------------------------------------------------------
+    {"FLOW I / TEST A", "Heroin", "Reagent A1 + A2", "Pink to Purple", "",
+     "Start", "#FFC0CB", "End", "#800080"},
+    {"FLOW I / TEST A", "Morphine", "Reagent A1 + A2", "Purple to Black/Grey", "",
+     "Start", "#800080", "End", "#2F4F4F"},
+    {"FLOW I / TEST A", "Codeine", "Reagent A1 + A2", "Purple to Dark Purple", "",
+     "Start", "#800080", "End", "#4B0082"},
+    {"FLOW I / TEST A", "Amphetamines", "Reagent A1 + A2", "Yellow to Black", "",
+     "Start", "#FFFF00", "End", "#000000"},
+    {"FLOW I / TEST A", "Mescaline", "Reagent A1 + A2", "Orange to Red", "",
+     "Start", "#FFA500", "End", "#FF0000"},
+    // --- Flow II / Test B ------------------------------------------------------------
+    {"FLOW II / TEST B", "Cannabis / Hashish", "Reagent B1 + B2 + B3",
+     "Purplish-Blue over Dark Purple", "",
+     "Top layer", "#4169E1", "Base", "#300130"},
+    // --- Flow III / Test C (synthetic dataset only; field profile has no Test C) ------
+    {"FLOW III / TEST C", "Cocaine", "Reagent C1 + C2 + C3", "Brilliant Blue Specks in Pink", "",
+     "Base", "#FFB6C1", "Specks", "#0000FF"},
+    // --- Synthetic blister tests -----------------------------------------------------
+    {"BLISTER TEST 01", "Methamphetamine", "Marquis", "Orange-Brown", "under 12 seconds",
+     "Anchor", "#CD853F", nullptr, nullptr},
+    {"BLISTER TEST 01", "MDMA / Ecstasy", "Marquis", "Orange to Black", "",
+     "Start", "#FF8C00", "End", "#050505"},
+    {"BLISTER TEST 04", "LSD", "Ehrlich's", "Clear Lavender Purple", "",
+     "Start", "#E6E6FA", "End", "#9370DB"},
+    {"BLISTER TEST 03", "Barbiturates", "Dille-Koppanyi", "Clear Lavender", "",
+     "Anchor", "#DDA0DD", nullptr, nullptr},
+};
+
+// Counted from the table above, not guessed: eleven anchors, and the last is the barbiturates
+// blister anchor. A count below the real size silently drops an anchor from the profile, and a
+// count above it hands out zeroed entries that read as real data.
+static_assert(sizeof(kSyntheticAnchors) / sizeof(kSyntheticAnchors[0]) == 11,
+              "the synthetic dataset above and its declared size have drifted apart");
+
+constexpr int kSyntheticAnchorCount = 11;
+
+static_assert(kSyntheticAnchorCount <= kMaxSyntheticAnchors,
+              "raise kMaxSyntheticAnchors rather than truncating the synthetic dataset");
+
+// Not source-backed, so this profile carries no official protocol and no expected qualitative
+// colours. Only the two array slots exist for the zero/one element initialiser.
+constexpr QualitativeTestProtocol kNoQualitativeProtocol = {"", "", {{""}}, 0, {{""}}, 0, ""};
 
 constexpr ReferenceCardProfile kProfiles[] = {
     {
-        /* id */ "NCB-CARD",
-        /* version */ "0.1.0-PROVISIONAL",
+        /* id */ "NCB-STANDARD-NARCOTICS-DD-KIT",
+        /* version */ "NCB-STANDARD-KIT-QUALITATIVE-2020-UNVALIDATED",
         /* validation */ ProfileValidation::kUnvalidated,
-        /* reagentType */ "MARQUIS",
+        /* kind */ ProfileKind::kField,
+        /* reagentType */ "NCB_STANDARD_NARCOTICS_DD_KIT",
         /* arucoDictionary */ kProvisionalArucoDictionary,
         /* markerIds */ {kProvisionalMarkerIds[0], kProvisionalMarkerIds[1], kProvisionalMarkerIds[2],
                          kProvisionalMarkerIds[3]},
@@ -73,19 +200,82 @@ constexpr ReferenceCardProfile kProfiles[] = {
         /* calibrationMode */ CalibrationMode::kNoneProvisional,
         /* comparisonTarget */ ComparisonTarget::kMeasuredReferencePatches,
         /* classification */ kProvisionalClassification,
+        /* qualitativeProtocols */ {kNcbQualitativeProtocols[0], kNcbQualitativeProtocols[1],
+                                    kNcbQualitativeProtocols[2]},
+        /* qualitativeProtocolCount */ 3,
+        /* sourceTitle */ "NICFS Forensic Guide, Chapter 8, Figure 8.13; NCB Annual Report 2023-24",
+        /* sourceUrl */ "https://police.py.gov.in/Brief%20on%20Narcotics%20Drugs%20and%20Psychotrophic%20Substances%20-%20Chapter%208.pdf | https://narcoticsindia.nic.in/Publication/ncb-annual-report-2023-24.pdf",
+        /* sourceStatus */ "OFFICIAL_QUALITATIVE_REFERENCE. NUMERICAL CALIBRATION: UNVALIDATED. DECISION BOUNDARIES: UNVALIDATED.",
+        /* syntheticAnchors */ {},
+        /* syntheticAnchorCount */ 0,
         /* provenance */
-        "PROVISIONAL: marker ids, swatch positions, reaction window and dE00 boundaries are "
-        "placeholders that exercise the pipeline. No kit manufacturer, printed card or published "
-        "colour dataset supplied them. Not validated for any reagent.",
+        "OFFICIAL QUALITATIVE REFERENCE: NCB / NICFS documentation supplies the Test A, B and E "
+        "procedures and expected colour names only. NUMERICAL CALIBRATION: UNVALIDATED - no "
+        "official source supplies RGB, Lab or hex values. DECISION BOUNDARIES: UNVALIDATED - marker "
+        "ids, swatch positions, reaction window and dE00 boundaries are pipeline placeholders. "
+        "Without validated numerics this profile can only ever return INCONCLUSIVE.",
+    },
+    {
+        /* id */ "DEMO_SYNTHETIC_PROFILE_V1",
+        /* version */ "DEMO_SYNTHETIC_PROFILE_V1-SYNTHETIC_DEMONSTRATION_ONLY",
+        /* validation */ ProfileValidation::kUnvalidated,
+        /* kind */ ProfileKind::kSyntheticDemonstration,
+        /* reagentType */ "SYNTHETIC_DEMONSTRATION_ONLY",
+        /* arucoDictionary */ kProvisionalArucoDictionary,
+        /* markerIds */ {kProvisionalMarkerIds[0], kProvisionalMarkerIds[1], kProvisionalMarkerIds[2],
+                         kProvisionalMarkerIds[3]},
+        /* markerCentres */ {kProvisionalMarkerCentres[0], kProvisionalMarkerCentres[1],
+                             kProvisionalMarkerCentres[2], kProvisionalMarkerCentres[3]},
+        /* rectifiedWidth */ 500,
+        /* rectifiedHeight */ 500,
+        /* patches */ {kProvisionalPatches[0], kProvisionalPatches[1], kProvisionalPatches[2],
+                       kProvisionalPatches[3], kProvisionalPatches[4], kProvisionalPatches[5]},
+        /* patchCount */ 6,
+        /* reactionRoi */ {0.35, 0.55, 0.30, 0.30},
+        // No colour correction matrix here either: a CCM fitted to synthetic targets would report
+        // a synthetic colour as a corrected measurement, which is the one thing a colour
+        // correction matrix must never do.
+        /* calibrationMode */ CalibrationMode::kNoneProvisional,
+        /* comparisonTarget */ ComparisonTarget::kMeasuredReferencePatches,
+        /* classification */ kSyntheticDemonstrationClassification,
+        /* qualitativeProtocols */ {kNoQualitativeProtocol},
+        /* qualitativeProtocolCount */ 0,
+        /* sourceTitle */ "MODEL / SYNTHETIC COLOUR ANCHORS",
+        /* sourceUrl */ "NONE. Not derived from any kit, standard, publication or measurement.",
+        /* sourceStatus */ "SYNTHETIC_DEMONSTRATION_ONLY. NOT OFFICIAL NCB DATA. NOT PHYSICAL CALIBRATION. NOT FORENSICALLY VALIDATED.",
+        /* syntheticAnchors */ {kSyntheticAnchors[0], kSyntheticAnchors[1], kSyntheticAnchors[2],
+                                kSyntheticAnchors[3], kSyntheticAnchors[4], kSyntheticAnchors[5],
+                                kSyntheticAnchors[6], kSyntheticAnchors[7], kSyntheticAnchors[8],
+                                kSyntheticAnchors[9], kSyntheticAnchors[10]},
+        /* syntheticAnchorCount */ kSyntheticAnchorCount,
+        /* provenance */
+        "SYNTHETIC COLOUR ANCHORS: values chosen for this project, not measured from a physical "
+        "NCB kit and not published by NCB or NICFS. NUMERICAL CALIBRATION: SYNTHETIC. DECISION "
+        "BOUNDARIES: DEMONSTRATION_ONLY. Every outcome this profile produces is a demonstration of "
+        "the colour-comparison workflow and is never a presumptive finding; any RGB, Lab or dE00 "
+        "derived from these anchors is arithmetic on a synthetic number.",
     },
 };
 
 static_assert(sizeof(kProfiles) / sizeof(kProfiles[0]) > 0, "profile table must not be empty");
+static_assert(sizeof(kProfiles) / sizeof(kProfiles[0]) > kSyntheticProfileIndex,
+              "the synthetic profile must exist in the table");
 
 }  // namespace
 
+const ReferenceCardProfile& ncbProfile() {
+    return kProfiles[kNcbProfileIndex];
+}
+
+const ReferenceCardProfile& syntheticProfile() {
+    return kProfiles[kSyntheticProfileIndex];
+}
+
 const ReferenceCardProfile& activeProfile() {
-    return kProfiles[0];
+    // The default is the source-backed field profile, not the synthetic one. A caller that forgets
+    // to name a profile therefore gets the conservative INCONCLUSIVE field path rather than a
+    // demonstration result.
+    return ncbProfile();
 }
 
 int profileCount() {
@@ -100,5 +290,5 @@ const ReferenceCardProfile* profileAt(int index) {
 }
 
 int activeProfileIndex() {
-    return 0;
+    return kNcbProfileIndex;
 }

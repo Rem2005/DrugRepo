@@ -58,11 +58,12 @@ enum CvGeometrySource {
 // pixel means so that "what the camera saw" and "what the pipeline concluded" stay separable in
 // the record.
 //
-// Java-side layout (see CvColorimetryMeasurement.kt): six ints, one boolean, nineteen doubles and
-// three strings, in the order declared here.
+// Java-side layout (see CvColorimetryMeasurement.kt): seven ints, one boolean, nineteen doubles
+// and three strings, in the order declared here.
 struct CvColorimetryFrame {
     int profileId = 0;           // index into the profile table
     int profileValidation = 0;   // ProfileValidation
+    int profileKind = 0;         // ProfileKind: field data or synthetic demonstration
     int classification = 0;      // CvClassification
     int swatchCount = 0;         // reference patches actually measured
     int rectifiedWidth = 0;
@@ -146,10 +147,16 @@ constexpr int kMinimumRoiPixels = 4;
 // Decodes JPEG bytes (as written by the Camera2 ImageReader) and measures the frame.
 // Never throws and never aborts: any failure is reported through CvFrame::status.
 //
-// The profile argument exists so a test can run the calibrated branch against a profile with
-// authoritative swatch colours. Production passes nullptr and gets activeProfile(). The shipped
-// profile never takes that branch, so without this parameter the calibrated path would be
-// unreachable by any test at all.
+// The profile argument selects which reference data the measurement is compared against. It exists
+// for three callers and no more: nullptr means activeProfile() in production, a test passes a
+// modified copy to reach a branch the shipped profiles cannot reach (the calibrated branch), and
+// the demonstration mode passes the synthetic profile. Choosing a profile is choosing DATA; the
+// measurement code below is identical for all three.
+//
+// The shipped field profile never classifies anything: without validated numerical calibration and
+// decision boundaries its result is always INCONCLUSIVE. The synthetic profile does classify,
+// because demonstrating the comparison is its entire purpose, and its result is reported as
+// SYNTHETIC and can never be a presumptive finding.
 CvFrame processJpeg(const uint8_t* data, size_t length,
                     const ReferenceCardProfile* profileOverride = nullptr);
 

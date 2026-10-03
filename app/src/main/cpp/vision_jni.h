@@ -11,7 +11,12 @@
 // profile version plus validation status that make those numbers interpretable. Carried as a
 // nested CvColorimetryMeasurement so the flat part of CvMeasurement did not have to grow to
 // twenty-five arguments.
-constexpr int kVisionAbiVersion = 3;
+// 4: nativeProcessImage takes the reference profile's table index, and the colour stage reports
+// ProfileKind alongside ProfileValidation. One pipeline, one measurement path, two profiles: the
+// kind is what lets a result be labelled a demonstration instead of a finding, and it has to be
+// a measurement field rather than a string the UI pattern-matches, because that is the difference
+// between an enforced separation and a hopeful one.
+constexpr int kVisionAbiVersion = 4;
 
 // TODO.md Phase 0 task 2/4. The pinned OpenCV release this native library is built against.
 // Asserted both on-device and by the native harness, so a drifted or mis-fetched SDK cannot
@@ -30,12 +35,12 @@ constexpr const char* kExpectedOpenCvVersion = "4.14.0";
 constexpr const char* kMeasurementCtorSignature =
     "(Lnic/drugrepo/vision/CvColorimetryMeasurement;IIIIDDDDDDDD[I[I[I)V";
 
-// CvColorimetryMeasurement: six ints (profileId, profileValidation, classification, swatchCount,
-// rectifiedWidth, rectifiedHeight), one boolean (ccmApplied), nineteen doubles (deltaE2000,
-// referenceRaw R/G/B, reference R/G/B, reactionRaw R/G/B, reaction R/G/B, referenceLab L/A/B,
-// reactionLab L/A/B) and three strings (profileVersion, profileProvenance, reagentType).
+// CvColorimetryMeasurement: seven ints (profileId, profileValidation, profileKind, classification,
+// swatchCount, rectifiedWidth, rectifiedHeight), one boolean (ccmApplied), nineteen doubles
+// (deltaE2000, referenceRaw R/G/B, reference R/G/B, reactionRaw R/G/B, reaction R/G/B, referenceLab
+// L/A/B, reactionLab L/A/B) and three strings (profileVersion, profileProvenance, reagentType).
 constexpr const char* kColorimetryCtorSignature =
-    "(IIIIIIZDDDDDDDDDDDDDDDDDDDLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
+    "(IIIIIIIZDDDDDDDDDDDDDDDDDDDLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
 
 // Plain C++ entry points, deliberately free of any JNI type so they can be asserted by the
 // native harness (vision_test.cpp) as well as through the JNI layer. The JNI wrappers in

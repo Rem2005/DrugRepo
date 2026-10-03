@@ -100,7 +100,7 @@ void testArucoModuleIsUsable() {
 }
 
 void testAbiContract() {
-    assert(kVisionAbiVersion == 3);
+    assert(kVisionAbiVersion == 4);
 }
 
 // --- Colour science (colorimetry.cpp) ------------------------------------------------
@@ -364,9 +364,15 @@ void testProfileIsHonestAboutItsProvenance() {
     // Whatever else changes, an unvalidated profile has to keep saying so in every field a UI or
     // a record could read instead of the validation flag.
     assert(profile.validation == ProfileValidation::kUnvalidated);
+    assert(profile.kind == ProfileKind::kField);
     assert(profile.classification.unvalidated);
-    assert(std::string(profile.version).find("PROVISIONAL") != std::string::npos);
-    assert(std::string(profile.provenance).find("PROVISIONAL") != std::string::npos);
+    assert(!profile.classification.hasValidatedNumericalCalibration);
+    assert(std::string(profile.version).find("UNVALIDATED") != std::string::npos);
+    assert(std::string(profile.provenance).find("NUMERICAL CALIBRATION: UNVALIDATED") !=
+           std::string::npos);
+    assert(std::string(profile.sourceStatus).find("OFFICIAL_QUALITATIVE_REFERENCE") !=
+           std::string::npos);
+    assert(std::string(profile.sourceStatus).find("UNVALIDATED") != std::string::npos);
     // Placeholder swatches must not masquerade as targets.
     for (int i = 0; i < profile.patchCount; ++i) {
         assert(!profile.patches[i].hasAuthoritativeColour);
@@ -378,6 +384,222 @@ void testProfileIsHonestAboutItsProvenance() {
     // A boundary table with no INCONCLUSIVE band would let an unvalidated number decide a
     // presumptive result.
     assert(profile.classification.positiveAtOrBelow < profile.classification.negativeAtOrAbove);
+    // The default has to be the conservative field profile: a caller who forgets to name one must
+    // not get a demonstration result by accident.
+    assert(&profile == &ncbProfile());
+    assert(activeProfileIndex() == kNcbProfileIndex);
+    assert(profileCount() > kSyntheticProfileIndex);
+}
+
+void testNcbStandardKitQualitativeProtocol() {
+    const ReferenceCardProfile& profile = activeProfile();
+    assert(std::string(profile.id) == "NCB-STANDARD-NARCOTICS-DD-KIT");
+    assert(profile.qualitativeProtocolCount == 3);
+    assert(std::string(profile.sourceTitle).find("NICFS Forensic Guide") != std::string::npos);
+    assert(std::string(profile.sourceTitle).find("NCB Annual Report 2023-24") != std::string::npos);
+    assert(std::string(profile.sourceUrl).find("police.py.gov.in") != std::string::npos);
+    assert(std::string(profile.sourceUrl).find("narcoticsindia.nic.in") != std::string::npos);
+    assert(std::string(profile.sourceUrl).find("ncb-annual-report-2023-24.pdf") !=
+           std::string::npos);
+
+    const QualitativeTestProtocol& testA = profile.qualitativeProtocols[0];
+    assert(std::string(testA.testId) == "TEST A");
+    assert(testA.stepCount == 5);
+    assert(std::string(testA.steps[1].instruction).find("2 or 3 drops of water") != std::string::npos);
+    assert(std::string(testA.steps[1].instruction).find("1 or 2 minutes") != std::string::npos);
+    assert(std::string(testA.steps[2].instruction).find("1 drop of A1, then 3 drops of A2") != std::string::npos);
+    assert(std::string(testA.steps[4].instruction).find("1 drop of A1, then 3 drops of A2") != std::string::npos);
+    assert(testA.expectedColourCount == 6);
+    assert(std::string(testA.expectedColours[0].analyte) == "Opium" &&
+           std::string(testA.expectedColours[0].colour) == "red-brown");
+    assert(std::string(testA.expectedColours[1].analyte) == "Morphine" && std::string(testA.expectedColours[1].colour) == "purple to grey");
+    assert(std::string(testA.expectedColours[2].analyte) == "Codeine" && std::string(testA.expectedColours[2].colour) == "pink to grey");
+    assert(std::string(testA.expectedColours[3].analyte) == "Heroin" && std::string(testA.expectedColours[3].colour) == "pink to mauve");
+    assert(std::string(testA.expectedColours[4].analyte) == "Amphetamines" && std::string(testA.expectedColours[4].colour) == "orange to dark grey");
+    assert(std::string(testA.expectedColours[5].analyte) == "Mescaline" && std::string(testA.expectedColours[5].colour) == "orange to red");
+
+    const QualitativeTestProtocol& testB = profile.qualitativeProtocols[1];
+    assert(std::string(testB.testId) == "TEST B" && testB.stepCount == 5);
+    assert(std::string(testB.steps[1].instruction).find("match-head-sized amount of B1") != std::string::npos);
+    assert(std::string(testB.steps[2].instruction) == "Add 25 drops of B2 and shake for 1 minute.");
+    assert(std::string(testB.steps[3].instruction) == "Add 25 drops of B3 and shake for 2 minutes.");
+    assert(std::string(testB.steps[4].instruction) == "Allow the test tube to stand for 2 minutes.");
+    assert(testB.expectedColourCount == 3);
+    assert(std::string(testB.observationInstruction).find("lower liquid layer") != std::string::npos);
+    assert(std::string(testB.observationInstruction).find("ignore the upper layer") != std::string::npos);
+    for (int i = 0; i < testB.expectedColourCount; ++i) {
+        assert(std::string(testB.expectedColours[i].colour) == "lower liquid layer red to light pink");
+    }
+    assert(std::string(testB.expectedColours[0].analyte) == "Marijuana");
+    assert(std::string(testB.expectedColours[1].analyte) == "Hashish");
+    assert(std::string(testB.expectedColours[2].analyte) == "Hashish oil");
+
+    const QualitativeTestProtocol& testE = profile.qualitativeProtocols[2];
+    assert(std::string(testE.testId) == "TEST E" && testE.stepCount == 5);
+    assert(std::string(testE.steps[1].instruction) == "Add 1 drop of E1 and shake for 10 seconds.");
+    assert(std::string(testE.steps[2].instruction) == "Add 1 drop of E2 and shake for 10 seconds.");
+    assert(std::string(testE.steps[3].instruction).find("5 drops of E3") != std::string::npos);
+    assert(std::string(testE.steps[4].instruction) == "Add 3 drops of E4.");
+    assert(testE.expectedColourCount == 4);
+    assert(std::string(testE.expectedColours[0].analyte) == "Cocaine (E1 + E2)" && std::string(testE.expectedColours[0].colour) == "blue");
+    assert(std::string(testE.expectedColours[1].analyte) == "Methaqualone (E1 + E2)" && std::string(testE.expectedColours[1].colour) == "blue");
+    assert(std::string(testE.expectedColours[2].analyte) == "Cocaine (E3 + E4)" && std::string(testE.expectedColours[2].colour) == "green");
+    assert(std::string(testE.expectedColours[3].analyte) == "Methaqualone (E3 + E4)" && std::string(testE.expectedColours[3].colour) == "yellow");
+    for (int i = 0; i < profile.qualitativeProtocolCount; ++i) {
+        assert(std::string(profile.qualitativeProtocols[i].testId) != "TEST C");
+        assert(std::string(profile.qualitativeProtocols[i].testId) != "TEST D");
+    }
+}
+
+// --- Synthetic demonstration profile (reference_profile.cpp) ---------------------------
+//
+// Everything below is about SEPARATION, not about the synthetic values being right. They are
+// demonstrations of a colour-comparison workflow; there is no sense in which they could be right.
+
+void testSyntheticProfileIsSeparateAndNonAuthoritative() {
+    const ReferenceCardProfile& field = ncbProfile();
+    const ReferenceCardProfile& demo = syntheticProfile();
+    assert(&demo == profileAt(kSyntheticProfileIndex));
+    assert(&demo != &field);
+
+    // Identity and status, spelled the way the rest of the app and the audit record spell them.
+    assert(std::string(demo.id) == "DEMO_SYNTHETIC_PROFILE_V1");
+    assert(std::string(demo.version) == "DEMO_SYNTHETIC_PROFILE_V1-SYNTHETIC_DEMONSTRATION_ONLY");
+    assert(demo.kind == ProfileKind::kSyntheticDemonstration);
+    assert(demo.validation == ProfileValidation::kUnvalidated);
+    assert(std::string(demo.reagentType) == "SYNTHETIC_DEMONSTRATION_ONLY");
+    assert(std::string(demo.sourceTitle) == "MODEL / SYNTHETIC COLOUR ANCHORS");
+
+    // Provenance: status, numerical calibration and decision boundaries each say what they are.
+    assert(std::string(demo.sourceStatus).find("SYNTHETIC_DEMONSTRATION_ONLY") !=
+           std::string::npos);
+    assert(std::string(demo.sourceStatus).find("NOT OFFICIAL NCB DATA") != std::string::npos);
+    assert(std::string(demo.sourceStatus).find("NOT FORENSICALLY VALIDATED") != std::string::npos);
+    assert(std::string(demo.provenance).find("NUMERICAL CALIBRATION: SYNTHETIC") !=
+           std::string::npos);
+    assert(std::string(demo.provenance).find("DECISION BOUNDARIES: DEMONSTRATION_ONLY") !=
+           std::string::npos);
+
+    // A synthetic profile must cite no authority. If a government URL ever appears here, the
+    // synthetic values are about to be described as official, which is the claim this whole
+    // profile exists to avoid making.
+    assert(std::string(demo.sourceUrl).find("police.py.gov.in") == std::string::npos);
+    assert(std::string(demo.sourceUrl).find("narcoticsindia.nic.in") == std::string::npos);
+    assert(std::string(demo.sourceUrl).find("NOT OFFICIAL NCB DATA") == std::string::npos);
+
+    // Never authoritative, in either direction: a demonstration profile cannot be promoted by
+    // flipping a validation flag, because it has no authoritative content to promote.
+    assert(!demo.classification.hasValidatedNumericalCalibration);
+    assert(demo.classification.unvalidated);
+    for (int i = 0; i < demo.patchCount; ++i) {
+        assert(!demo.patches[i].hasAuthoritativeColour);
+    }
+    // And no colour correction fitted to synthetic targets: that would report a synthetic colour
+    // as a corrected measurement.
+    assert(demo.calibrationMode == CalibrationMode::kNoneProvisional);
+}
+
+void testSyntheticDataCannotReachTheFieldProfile() {
+    const ReferenceCardProfile& field = ncbProfile();
+    const ReferenceCardProfile& demo = syntheticProfile();
+
+    // The structural guarantee: a field profile has nowhere to hold a synthetic anchor at all.
+    assert(field.syntheticAnchorCount == 0);
+    assert(field.kind == ProfileKind::kField);
+
+    // The field profile carries no synthetic hex value anywhere, including the demonstration
+    // dataset's own "Test C" entry, which is the one most likely to be mistaken for the real
+    // Test C that the official guide does not describe.
+    const char* syntheticHexValues[] = {
+        "#FFC0CB", "#800080", "#2F4F4F", "#4B0082", "#FFFF00", "#000000", "#FFA500", "#FF0000",
+        "#4169E1", "#300130", "#FFB6C1", "#0000FF", "#CD853F", "#FF8C00", "#050505", "#E6E6FA",
+        "#9370DB", "#DDA0DD"};
+    std::string fieldText = std::string(field.provenance) + field.sourceTitle + field.sourceUrl +
+                            field.sourceStatus + field.version + field.id + field.reagentType;
+    for (const char* hex : syntheticHexValues) {
+        assert(fieldText.find(hex) == std::string::npos);
+    }
+    // The field profile's own qualitative table is official colour NAMES, never a hex triple.
+    for (int p = 0; p < field.qualitativeProtocolCount; ++p) {
+        for (int c = 0; c < field.qualitativeProtocols[p].expectedColourCount; ++c) {
+            const std::string colour = field.qualitativeProtocols[p].expectedColours[c].colour;
+            assert(colour.find('#') == std::string::npos);
+        }
+    }
+
+    // The profile table is constexpr, so nothing at runtime can rewrite one entry from another.
+    // A caller can copy a profile and edit the copy; it cannot edit the shipped field profile.
+    ReferenceCardProfile mutated = demo;
+    mutated.syntheticAnchorCount = 0;
+    mutated.syntheticAnchors[0].hex1 = "#000000";
+    assert(field.id == ncbProfile().id);
+    assert(field.syntheticAnchorCount == 0);
+    assert(syntheticProfile().syntheticAnchorCount > 0);
+    assert(std::string(syntheticProfile().syntheticAnchors[0].hex1) == "#FFC0CB");
+}
+
+void testSyntheticAnchorsAreExactlyAsDefined() {
+    const ReferenceCardProfile& demo = syntheticProfile();
+    // Eleven: five Test A, one Test B, one Test C, and four blister anchors.
+    assert(demo.syntheticAnchorCount == 11);
+
+    struct Expected {
+        const char* flow;
+        const char* target;
+        const char* reagent;
+        const char* phrase;
+        const char* timing;
+        const char* role1;
+        const char* hex1;
+        const char* role2;
+        const char* hex2;
+    };
+    const Expected expected[] = {
+        {"FLOW I / TEST A", "Heroin", "Reagent A1 + A2", "Pink to Purple", "",
+         "Start", "#FFC0CB", "End", "#800080"},
+        {"FLOW I / TEST A", "Morphine", "Reagent A1 + A2", "Purple to Black/Grey", "",
+         "Start", "#800080", "End", "#2F4F4F"},
+        {"FLOW I / TEST A", "Codeine", "Reagent A1 + A2", "Purple to Dark Purple", "",
+         "Start", "#800080", "End", "#4B0082"},
+        {"FLOW I / TEST A", "Amphetamines", "Reagent A1 + A2", "Yellow to Black", "",
+         "Start", "#FFFF00", "End", "#000000"},
+        {"FLOW I / TEST A", "Mescaline", "Reagent A1 + A2", "Orange to Red", "",
+         "Start", "#FFA500", "End", "#FF0000"},
+        {"FLOW II / TEST B", "Cannabis / Hashish", "Reagent B1 + B2 + B3",
+         "Purplish-Blue over Dark Purple", "", "Top layer", "#4169E1", "Base", "#300130"},
+        {"FLOW III / TEST C", "Cocaine", "Reagent C1 + C2 + C3", "Brilliant Blue Specks in Pink",
+         "", "Base", "#FFB6C1", "Specks", "#0000FF"},
+        {"BLISTER TEST 01", "Methamphetamine", "Marquis", "Orange-Brown", "under 12 seconds",
+         "Anchor", "#CD853F", nullptr, nullptr},
+        {"BLISTER TEST 01", "MDMA / Ecstasy", "Marquis", "Orange to Black", "",
+         "Start", "#FF8C00", "End", "#050505"},
+        {"BLISTER TEST 04", "LSD", "Ehrlich's", "Clear Lavender Purple", "",
+         "Start", "#E6E6FA", "End", "#9370DB"},
+        {"BLISTER TEST 03", "Barbiturates", "Dille-Koppanyi", "Clear Lavender", "",
+         "Anchor", "#DDA0DD", nullptr, nullptr},
+    };
+    assert(sizeof(expected) / sizeof(expected[0]) == demo.syntheticAnchorCount);
+
+    for (int i = 0; i < demo.syntheticAnchorCount; ++i) {
+        const SyntheticAnchor& anchor = demo.syntheticAnchors[i];
+        assert(std::string(anchor.flow) == expected[i].flow);
+        assert(std::string(anchor.target) == expected[i].target);
+        assert(std::string(anchor.reagent) == expected[i].reagent);
+        assert(std::string(anchor.expectedPhrase) == expected[i].phrase);
+        assert(std::string(anchor.timingNote) == expected[i].timing);
+        assert(std::string(anchor.role1) == expected[i].role1);
+        assert(std::string(anchor.hex1) == expected[i].hex1);
+        if (expected[i].hex2 == nullptr) {
+            assert(anchor.hex2 == nullptr);
+        } else {
+            assert(anchor.role2 != nullptr && std::string(anchor.role2) == expected[i].role2);
+            assert(std::string(anchor.hex2) == expected[i].hex2);
+        }
+        // Every stored colour is a 6-digit hex triple, so nothing here can be mistaken for a
+        // measured or published RGB value in some other notation.
+        assert(std::string(anchor.hex1).size() == 7 && anchor.hex1[0] == '#');
+        assert(anchor.hex2 == nullptr || std::string(anchor.hex2).size() == 7);
+    }
 }
 
 // --- CV pipeline (cv_pipeline.cpp) -------------------------------------------------
@@ -403,6 +625,20 @@ const std::array<double, 6> kFixtureSwatchValues = {30.0, 90.0, 150.0, 210.0, 60
 // Average of kFixtureSwatchValues, which is what the pipeline must report as the reference mean.
 constexpr double kFixtureReferenceMean = 130.0;
 
+// A second, CHROMATIC set of the same six levels, for the colour-correction-matrix test only.
+// The greys above give a reference set whose R, G and B columns are identical, so the 3x3 normal
+// equations are rank-deficient and no matrix can be fitted from them at all. These triples have
+// three linearly independent columns, which is the minimum a 3x3 fit needs. Arbitrary values,
+// chosen to be distinguishable; still not colours of any reagent.
+const std::array<std::array<double, 3>, 6> kFixtureChromaticSwatches = {{
+    {{30.0, 90.0, 150.0}},
+    {{60.0, 210.0, 90.0}},
+    {{150.0, 30.0, 210.0}},
+    {{210.0, 150.0, 30.0}},
+    {{90.0, 30.0, 210.0}},
+    {{240.0, 210.0, 60.0}},
+}};
+
 // Normalised profile rectangle to card-space pixels. Same rounding as cv_pipeline.cpp's
 // toCardRect(), so a mismatch here would be a real disagreement rather than a rounding artefact.
 cv::Rect fixtureCardRect(const NormalizedRect& normalized) {
@@ -422,16 +658,20 @@ cv::Point2f fixtureCardMarkerCentre(int index) {
         static_cast<float>(centre.y * activeProfile().rectifiedHeight));
 }
 
-cv::Mat syntheticCardSpace(double reactionValue) {
+cv::Mat syntheticCardSpace(double reactionValue, bool chromaticSwatches = false) {
     const ReferenceCardProfile& profile = activeProfile();
     cv::Mat card(profile.rectifiedHeight, profile.rectifiedWidth, CV_8UC3,
                  cv::Scalar(kFixtureSheetValue, kFixtureSheetValue, kFixtureSheetValue));
 
     for (int i = 0; i < profile.patchCount; ++i) {
         const cv::Rect rect = fixtureCardRect(profile.patches[i].rect);
-        const cv::Scalar value(kFixtureSwatchValues[static_cast<size_t>(i)],
-                                kFixtureSwatchValues[static_cast<size_t>(i)],
-                                kFixtureSwatchValues[static_cast<size_t>(i)]);
+        const double level = kFixtureSwatchValues[static_cast<size_t>(i)];
+        const cv::Scalar value =
+            chromaticSwatches
+                ? cv::Scalar(kFixtureChromaticSwatches[static_cast<size_t>(i)][0],
+                             kFixtureChromaticSwatches[static_cast<size_t>(i)][1],
+                             kFixtureChromaticSwatches[static_cast<size_t>(i)][2])
+                : cv::Scalar(level, level, level);
         card(rect).setTo(value);
     }
 
@@ -462,8 +702,9 @@ const std::array<cv::Point2f, 4> kTiltedCentres = {
     cv::Point2f(74.0f, 38.0f), cv::Point2f(586.0f, 62.0f),
     cv::Point2f(548.0f, 441.0f), cv::Point2f(52.0f, 418.0f)};
 
-cv::Mat frameFromCardSpace(double reactionValue, const std::array<cv::Point2f, 4>& centres) {
-    const cv::Mat card = syntheticCardSpace(reactionValue);
+cv::Mat frameFromCardSpace(double reactionValue, const std::array<cv::Point2f, 4>& centres,
+                           bool chromaticSwatches = false) {
+    const cv::Mat card = syntheticCardSpace(reactionValue, chromaticSwatches);
     std::array<cv::Point2f, 4> cardPoints;
     for (int i = 0; i < 4; ++i) {
         cardPoints[static_cast<size_t>(i)] = fixtureCardMarkerCentre(i);
@@ -485,6 +726,84 @@ std::vector<uint8_t> encodeJpeg(const cv::Mat& image) {
 }
 
 CvFrame process(const std::vector<uint8_t>& jpeg) { return processJpeg(jpeg.data(), jpeg.size()); }
+
+void testOnePipelineTwoProfiles() {
+    // The SAME fixture, the SAME function, two profile arguments. That is the whole separation:
+    // no second pipeline, no forked analyzer, no second colour implementation. The fixture is
+    // drawn from the field profile's geometry, which is only sound because both profiles declare
+    // the same card size and the same patch and marker rectangles - so assert that here.
+    assert(syntheticProfile().rectifiedWidth == ncbProfile().rectifiedWidth);
+    assert(syntheticProfile().rectifiedHeight == ncbProfile().rectifiedHeight);
+    assert(syntheticProfile().patchCount == ncbProfile().patchCount);
+    for (size_t i = 0; i < std::size(ncbProfile().markerIds); ++i) {
+        assert(syntheticProfile().markerIds[i] == ncbProfile().markerIds[i]);
+    }
+
+    const std::vector<uint8_t> jpeg = encodeJpeg(frameFromCardSpace(128.0, kFrontalCentres));
+    const CvFrame field = processJpeg(jpeg.data(), jpeg.size(), &ncbProfile());
+    const CvFrame synthetic = processJpeg(jpeg.data(), jpeg.size(), &syntheticProfile());
+    assert(field.status == kCvStatusOk);
+    assert(synthetic.status == kCvStatusOk);
+
+    // Identical measurement code, so the geometry and the colour maths agree exactly.
+    assert(field.geometrySource == synthetic.geometrySource);
+    assert(field.colorimetry.swatchCount == synthetic.colorimetry.swatchCount);
+    assert(field.colorimetry.deltaE2000 == synthetic.colorimetry.deltaE2000);
+    assert(field.colorimetry.reactionRawR == synthetic.colorimetry.reactionRawR);
+    assert(field.reactionMeanR == synthetic.reactionMeanR);
+
+    // What differs is the kind, and therefore what the result may claim. The field profile has no
+    // validated numerical calibration, so it is INCONCLUSIVE; the demonstration profile is allowed
+    // to classify, and that is the entire demonstration.
+    assert(field.colorimetry.profileKind == static_cast<int>(ProfileKind::kField));
+    assert(synthetic.colorimetry.profileKind ==
+           static_cast<int>(ProfileKind::kSyntheticDemonstration));
+    assert(field.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
+    assert(synthetic.colorimetry.classification !=
+           static_cast<int>(CvClassification::kInconclusive));
+    // The synthetic version string is what the audit record stores as reference_data_version, so a
+    // sealed demonstration stays identifiable months later from the record alone.
+    assert(std::string(synthetic.colorimetry.profileVersion).find("SYNTHETIC_DEMONSTRATION_ONLY") !=
+           std::string::npos);
+    assert(std::string(field.colorimetry.profileVersion).find("SYNTHETIC") == std::string::npos);
+    assert(synthetic.colorimetry.reagentType == "SYNTHETIC_DEMONSTRATION_ONLY");
+    assert(field.colorimetry.reagentType != synthetic.colorimetry.reagentType);
+}
+
+void testFieldProfileStaysInconclusiveWithoutValidatedCalibration() {
+    // A dE00 that any boundary table would call a match still cannot produce a field finding,
+    // because the official sources supply colour names and no numbers at all.
+    const std::vector<uint8_t> matching = encodeJpeg(frameFromCardSpace(130.0, kFrontalCentres));
+    const std::vector<uint8_t> differing = encodeJpeg(frameFromCardSpace(20.0, kFrontalCentres));
+    const CvFrame near = processJpeg(matching.data(), matching.size(), &ncbProfile());
+    const CvFrame far = processJpeg(differing.data(), differing.size(), &ncbProfile());
+    assert(near.status == kCvStatusOk && far.status == kCvStatusOk);
+    assert(near.colorimetry.deltaE2000 < far.colorimetry.deltaE2000);
+    assert(near.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
+    assert(far.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
+
+    // Promoting the profile's own validation flags is not enough either. The gate is the numerical
+    // calibration flag, so an official-source profile cannot be talked into classifying by calling
+    // it validated.
+    ReferenceCardProfile promoted = ncbProfile();
+    promoted.validation = ProfileValidation::kValidated;
+    promoted.classification.unvalidated = false;
+    const CvFrame stillInconclusive = processJpeg(matching.data(), matching.size(), &promoted);
+    assert(stillInconclusive.status == kCvStatusOk);
+    assert(stillInconclusive.colorimetry.classification ==
+           static_cast<int>(CvClassification::kInconclusive));
+
+    // Only a profile with calibrated numbers and bounded classification may classify - and turning
+    // a field profile into a demonstration one by flipping its kind is exactly the transition the
+    // labels exist to expose, so the kind has to follow the classification.
+    promoted.classification.hasValidatedNumericalCalibration = true;
+    promoted.kind = ProfileKind::kSyntheticDemonstration;
+    const CvFrame demonstrative = processJpeg(matching.data(), matching.size(), &promoted);
+    assert(demonstrative.colorimetry.profileKind ==
+           static_cast<int>(ProfileKind::kSyntheticDemonstration));
+    assert(demonstrative.colorimetry.classification !=
+           static_cast<int>(CvClassification::kInconclusive));
+}
 
 void testPipelineRectifiesAgainstTheProfile() {
     const std::vector<uint8_t> jpeg = encodeJpeg(frameFromCardSpace(128.0, kFrontalCentres));
@@ -585,23 +904,24 @@ void testPipelineColorStageIsInternallyConsistent() {
     // dE00 is monotone in the colour difference: the darker reaction is further from the reference.
     assert(near.colorimetry.deltaE2000 < far.colorimetry.deltaE2000);
 
-    // Both classifications are what the profile's own boundary table gives for the dE00 the
-    // pipeline measured - computed here from the same table, independently of the pipeline.
+    // The authoritative sources supply qualitative words only. Their absence of validated RGB,
+    // Lab and dE00 calibration must keep every production result INCONCLUSIVE, regardless of
+    // where the measured dE00 falls relative to provisional demonstration values.
     const ReferenceCardProfile& profile = activeProfile();
-    const auto expectedClass = [profile](double deltaE) {
-        if (deltaE <= profile.classification.positiveAtOrBelow) {
-            return static_cast<int>(CvClassification::kPositive);
-        }
-        if (deltaE >= profile.classification.negativeAtOrAbove) {
-            return static_cast<int>(CvClassification::kNegative);
-        }
-        return static_cast<int>(CvClassification::kInconclusive);
-    };
-    assert(near.colorimetry.classification == expectedClass(near.colorimetry.deltaE2000));
-    assert(far.colorimetry.classification == expectedClass(far.colorimetry.deltaE2000));
-    // The two test colours must land on different outcomes, or this assertion would pass on a
-    // pipeline that classifies everything the same way.
-    assert(near.colorimetry.classification != far.colorimetry.classification);
+    assert(profile.classification.unvalidated);
+    assert(!profile.classification.hasValidatedNumericalCalibration);
+    assert(near.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
+    assert(far.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
+
+    // Even a profile marked authoritative cannot classify from qualitative names alone: numerical
+    // calibration/boundaries are a separate, mandatory gate.
+    ReferenceCardProfile qualitativeOnly = profile;
+    qualitativeOnly.validation = ProfileValidation::kValidated;
+    qualitativeOnly.classification.unvalidated = false;
+    qualitativeOnly.classification.hasValidatedNumericalCalibration = false;
+    const CvFrame stillInconclusive = processJpeg(nearReference.data(), nearReference.size(), &qualitativeOnly);
+    assert(stillInconclusive.status == kCvStatusOk);
+    assert(stillInconclusive.colorimetry.classification == static_cast<int>(CvClassification::kInconclusive));
 
     // The reported Lab values are the ones dE00 was computed from, and they match a direct
     // conversion of the measured colour rather than a stored constant.
@@ -750,9 +1070,11 @@ void testSrgbCompandingRoundTrips() {
         assert(std::fabs(linearToSrgb(srgbToLinear(channel)) - channel) < 1e-12);
         assert(std::fabs(srgbToLinear(linearToSrgb(channel)) - channel) < 1e-12);
     }
-    // Out-of-gamut corrected values are clamped, not wrapped or propagated as NaN.
-    assert(linearToSrgb(-0.5) == 0.0);
-    assert(linearToSrgb(1.5) == 1.0);
+    // Out-of-gamut corrected values are clamped, not wrapped or propagated as NaN. Tolerance, not
+    // exact equality: 1.055 * 1.0 - 0.055 is 0.9999999999999999 in IEEE doubles, so the clamp is
+    // working and an `== 1.0` here would only be testing the last bit of a decimal constant.
+    assert(std::fabs(linearToSrgb(-0.5) - 0.0) < 1e-12);
+    assert(std::fabs(linearToSrgb(1.5) - 1.0) < 1e-12);
 }
 
 void testPipelineAppliesTheCalibrationMatrix() {
@@ -762,18 +1084,26 @@ void testPipelineAppliesTheCalibrationMatrix() {
     ReferenceCardProfile calibrated = activeProfile();
     calibrated.calibrationMode = CalibrationMode::kColorCorrectionMatrix;
 
-    // Give the swatches authoritative colours: the same greys the fixture draws. With observed
-    // equal to ideal the fitted matrix is the identity, so corrected and raw must agree, and the
-    // Lab values must match the uncorrected path rather than differing by a transfer function.
+    // Give the swatches authoritative colours: the same chromatic greys the fixture draws. With
+    // observed equal to ideal the fitted matrix is the identity, so corrected and raw must agree,
+    // and the Lab values must match the uncorrected path rather than differing by a transfer
+    // function.
+    //
+    // In sRGB units, not linear ones: the pipeline applies srgbToLinear() to these targets itself
+    // before solving, so pre-companding them here would ask the 3x3 to fit a power curve. It cannot,
+    // it rejects the fit as too large a correction, and the branch under test would go untested.
     for (int i = 0; i < calibrated.patchCount; ++i) {
-        const double level = srgbToLinear(kFixtureSwatchValues[static_cast<size_t>(i)] / 255.0);
-        calibrated.patches[i].idealR = level;
-        calibrated.patches[i].idealG = level;
-        calibrated.patches[i].idealB = level;
+        const auto& swatch = kFixtureChromaticSwatches[static_cast<size_t>(i)];
+        calibrated.patches[i].idealR = swatch[0] / 255.0;
+        calibrated.patches[i].idealG = swatch[1] / 255.0;
+        calibrated.patches[i].idealB = swatch[2] / 255.0;
         calibrated.patches[i].hasAuthoritativeColour = true;
     }
 
-    const std::vector<uint8_t> jpeg = encodeJpeg(frameFromCardSpace(128.0, kFrontalCentres));
+    // Chromatic swatches, because a neutral-grey reference set cannot fit a 3x3 at all: its R, G
+    // and B columns are the same vector, so the normal equations are singular.
+    const std::vector<uint8_t> jpeg =
+        encodeJpeg(frameFromCardSpace(128.0, kFrontalCentres, /*chromaticSwatches=*/true));
     const CvFrame plain = processJpeg(jpeg.data(), jpeg.size());
     const CvFrame frame = processJpeg(jpeg.data(), jpeg.size(), &calibrated);
 
@@ -841,6 +1171,12 @@ extern "C" int vision_native_test_run() {
     testSrgbToLabAnchors();
     testColorCorrectionMatrixRecoversAKnownTransform();
     testProfileIsHonestAboutItsProvenance();
+    testNcbStandardKitQualitativeProtocol();
+    testSyntheticProfileIsSeparateAndNonAuthoritative();
+    testSyntheticDataCannotReachTheFieldProfile();
+    testSyntheticAnchorsAreExactlyAsDefined();
+    testOnePipelineTwoProfiles();
+    testFieldProfileStaysInconclusiveWithoutValidatedCalibration();
     testPipelineRectifiesAgainstTheProfile();
     testPipelineMeasuresTheDrawnColours();
     testPipelineRecoversColoursThroughPerspective();

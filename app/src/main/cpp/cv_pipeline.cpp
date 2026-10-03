@@ -59,8 +59,19 @@ LinearRgb toLinear(const cv::Vec3d& rgb8) {
 }
 
 CvClassification classify(const ReferenceCardProfile& profile, double deltaE) {
-    // Boundary table from the profile. Between the two bounds the result is INCONCLUSIVE: an
-    // unvalidated table must not manufacture a yes/no out of an arbitrary number.
+    // A field profile may only produce POSITIVE or NEGATIVE from validated numerical calibration
+    // AND validated decision boundaries. Official qualitative colour names ("pink to mauve") are
+    // protocol data, not calibration data, and no image can become a finding from them.
+    if (profile.kind == ProfileKind::kField &&
+        (profile.validation != ProfileValidation::kValidated ||
+         profile.classification.unvalidated ||
+         !profile.classification.hasValidatedNumericalCalibration)) {
+        return CvClassification::kInconclusive;
+    }
+    // A synthetic demonstration profile is allowed to classify against its demonstration
+    // boundaries - showing the comparison working is the entire point of it - and the caller is
+    // required to report the outcome as a demonstration. Boundary table; between the two bounds
+    // the result is INCONCLUSIVE.
     if (deltaE <= profile.classification.positiveAtOrBelow) {
         return CvClassification::kPositive;
     }
@@ -83,6 +94,8 @@ CvFrame processJpeg(const uint8_t* data, size_t length,
     const ReferenceCardProfile& profile = profileOverride != nullptr ? *profileOverride : activeProfile();
     frame.colorimetry.profileId = profileOverride != nullptr ? -1 : activeProfileIndex();
     frame.colorimetry.profileValidation = static_cast<int>(profile.validation);
+    frame.colorimetry.profileKind = static_cast<int>(profile.kind);
+    frame.colorimetry.classification = 0;  // replaced by classify() once the dE00 is known
     frame.colorimetry.rectifiedWidth = profile.rectifiedWidth;
     frame.colorimetry.rectifiedHeight = profile.rectifiedHeight;
     frame.colorimetry.profileVersion = profile.version;

@@ -96,9 +96,12 @@ Java_nic_drugrepo_vision_VisionNative_nativeArucoSelfTest(JNIEnv* /*env*/, jobje
 // never sees an OpenCV type, a Mat, or a C++ object - only this flat, primitive constructor
 // (see CvMeasurement.kt). The C++ side owns decoding, marker detection, ROI selection and
 // colour measurement; nothing here computes a colour in Java.
+//
+// profileIndex selects which reference data the same measurement is compared against
+// (reference_profile.h). Nothing else about the stage changes with it: one pipeline, two profiles.
 extern "C" JNIEXPORT jobject JNICALL
 Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*thiz*/,
-                                                          jbyteArray jpeg) {
+                                                          jbyteArray jpeg, jint profileIndex) {
     const jsize length = env->GetArrayLength(jpeg);
     // GetByteArrayRegion into a local vector rather than GetByteArrayElements: no pinned
     // buffer to release on any of the early returns below, and processJpeg copies out of it
@@ -107,7 +110,12 @@ Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*
     if (length > 0) {
         env->GetByteArrayRegion(jpeg, 0, length, reinterpret_cast<jbyte*>(bytes.data()));
     }
-    const CvFrame frame = processJpeg(bytes.data(), bytes.size());
+    // An out-of-range index is not a crash and not a silent fall back to the field profile: a
+    // caller that asked for the synthetic card and got a field measurement instead would be told
+    // it had demonstrated something it had not. nullptr means "no profile named", which is
+    // activeProfile().
+    const ReferenceCardProfile* selected = profileAt(profileIndex);
+    const CvFrame frame = processJpeg(bytes.data(), bytes.size(), selected);
 
     jclass measurementClass = env->FindClass(kMeasurementClass);
     if (measurementClass == nullptr) {
@@ -152,6 +160,7 @@ Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*
         colorimetryClass, colorimetryCtor,
         static_cast<jint>(colorimetry.profileId),
         static_cast<jint>(colorimetry.profileValidation),
+        static_cast<jint>(colorimetry.profileKind),
         static_cast<jint>(colorimetry.classification),
         static_cast<jint>(colorimetry.swatchCount),
         static_cast<jint>(colorimetry.rectifiedWidth),
