@@ -1,6 +1,7 @@
 #include <jni.h>
 
 #include <cstring>
+#include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/version.hpp>
@@ -8,6 +9,7 @@
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 
+#include "cv_pipeline.h"
 #include "vision_jni.h"
 
 namespace {
@@ -16,6 +18,9 @@ namespace {
 // exercises the aruco module, it is not reference data for any assay.
 constexpr int kMarkerId = 7;
 constexpr int kMarkerSidePixels = 64;
+
+constexpr const char* kMeasurementClass = "nic/drugrepo/vision/CvMeasurement";
+constexpr const char* kColorimetryClass = "nic/drugrepo/vision/CvColorimetryMeasurement";
 
 }  // namespace
 
@@ -85,4 +90,113 @@ Java_nic_drugrepo_vision_VisionNative_nativeOpenCvVersion(JNIEnv* env, jobject /
 extern "C" JNIEXPORT jint JNICALL
 Java_nic_drugrepo_vision_VisionNative_nativeArucoSelfTest(JNIEnv* /*env*/, jobject /*thiz*/) {
     return arucoSelfTest();
+}
+
+// The whole CV stage in one call: JPEG bytes in, a structured measurement object out. Kotlin
+// never sees an OpenCV type, a Mat, or a C++ object - only this flat, primitive constructor
+// (see CvMeasurement.kt). The C++ side owns decoding, marker detection, ROI selection and
+// colour measurement; nothing here computes a colour in Java.
+extern "C" JNIEXPORT jobject JNICALL
+Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*thiz*/,
+                                                          jbyteArray jpeg) {
+    const jsize length = env->GetArrayLength(jpeg);
+    // GetByteArrayRegion into a local vector rather than GetByteArrayElements: no pinned
+    // buffer to release on any of the early returns below, and processJpeg copies out of it
+    // synchronously anyway.
+    std::vector<uint8_t> bytes(static_cast<size_t>(length));
+    if (length > 0) {
+        env->GetByteArrayRegion(jpeg, 0, length, reinterpret_cast<jbyte*>(bytes.data()));
+    }
+    const CvFrame frame = processJpeg(bytes.data(), bytes.size());
+
+    jclass measurementClass = env->FindClass(kMeasurementClass);
+    if (measurementClass == nullptr) {
+        return nullptr;  // pending NoClassDefFoundError; do not mask it with a null return
+    }
+    jmethodID ctor = env->GetMethodID(measurementClass, "<init>", kMeasurementCtorSignature);
+    if (ctor == nullptr) {
+        return nullptr;  // pending NoSuchMethodError, same reasoning
+    }
+
+    auto toJavaArray = [env](const std::vector<int>& source) -> jintArray {
+        jintArray array = env->NewIntArray(static_cast<jsize>(source.size()));
+        if (array == nullptr || source.empty()) {
+            return array;
+        }
+        env->SetIntArrayRegion(array, 0, static_cast<jsize>(source.size()), source.data());
+        return array;
+    };
+
+    const jintArray markerIds = toJavaArray(frame.markerIds);
+    const jintArray markerCorners = toJavaArray(frame.markerCorners);
+    jintArray regions = env->NewIntArray(8);
+    if (regions == nullptr) {
+        return nullptr;
+    }
+    env->SetIntArrayRegion(regions, 0, 8, frame.regions);
+
+    // The colour stage is always reported, including on failure: a record that says
+    // "no reference card found" has to say which profile was looking, or the status alone is
+    // unreadable months later.
+    const CvColorimetryFrame& colorimetry = frame.colorimetry;
+    jclass colorimetryClass = env->FindClass(kColorimetryClass);
+    if (colorimetryClass == nullptr) {
+        return nullptr;
+    }
+    jmethodID colorimetryCtor = env->GetMethodID(colorimetryClass, "<init>",
+                                                  kColorimetryCtorSignature);
+    if (colorimetryCtor == nullptr) {
+        return nullptr;
+    }
+    jobject colorimetryObject = env->NewObject(
+        colorimetryClass, colorimetryCtor,
+        static_cast<jint>(colorimetry.profileId),
+        static_cast<jint>(colorimetry.profileValidation),
+        static_cast<jint>(colorimetry.classification),
+        static_cast<jint>(colorimetry.swatchCount),
+        static_cast<jint>(colorimetry.rectifiedWidth),
+        static_cast<jint>(colorimetry.rectifiedHeight),
+        static_cast<jboolean>(colorimetry.ccmApplied != 0 ? JNI_TRUE : JNI_FALSE),
+        static_cast<jdouble>(colorimetry.deltaE2000),
+        static_cast<jdouble>(colorimetry.referenceRawR),
+        static_cast<jdouble>(colorimetry.referenceRawG),
+        static_cast<jdouble>(colorimetry.referenceRawB),
+        static_cast<jdouble>(colorimetry.referenceR),
+        static_cast<jdouble>(colorimetry.referenceG),
+        static_cast<jdouble>(colorimetry.referenceB),
+        static_cast<jdouble>(colorimetry.reactionRawR),
+        static_cast<jdouble>(colorimetry.reactionRawG),
+        static_cast<jdouble>(colorimetry.reactionRawB),
+        static_cast<jdouble>(colorimetry.reactionR),
+        static_cast<jdouble>(colorimetry.reactionG),
+        static_cast<jdouble>(colorimetry.reactionB),
+        static_cast<jdouble>(colorimetry.referenceLabL),
+        static_cast<jdouble>(colorimetry.referenceLabA),
+        static_cast<jdouble>(colorimetry.referenceLabB),
+        static_cast<jdouble>(colorimetry.reactionLabL),
+        static_cast<jdouble>(colorimetry.reactionLabA),
+        static_cast<jdouble>(colorimetry.reactionLabB),
+        env->NewStringUTF(colorimetry.profileVersion.c_str()),
+        env->NewStringUTF(colorimetry.profileProvenance.c_str()),
+        env->NewStringUTF(colorimetry.reagentType.c_str()));
+    if (colorimetryObject == nullptr) {
+        return nullptr;
+    }
+
+    return env->NewObject(
+        measurementClass, ctor,
+        colorimetryObject,
+        static_cast<jint>(frame.status),
+        static_cast<jint>(frame.imageWidth),
+        static_cast<jint>(frame.imageHeight),
+        static_cast<jint>(frame.geometrySource),
+        static_cast<jdouble>(frame.laplacianVariance),
+        static_cast<jdouble>(frame.glareFraction),
+        static_cast<jdouble>(frame.referenceMeanB),
+        static_cast<jdouble>(frame.referenceMeanG),
+        static_cast<jdouble>(frame.referenceMeanR),
+        static_cast<jdouble>(frame.reactionMeanB),
+        static_cast<jdouble>(frame.reactionMeanG),
+        static_cast<jdouble>(frame.reactionMeanR),
+        markerIds, markerCorners, regions);
 }

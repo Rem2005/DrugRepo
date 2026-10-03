@@ -10,4 +10,12 @@
     -->
     <string name="permission_camera_rationale">DrugRepo needs the camera to photograph a field test card so it can measure the colour change on this device. The analysis runs on this phone only, and any result is presumptive — it still needs laboratory confirmation.</string>
     <string name="permission_location_rationale">DrugRepo records where the sample was seized so the location can be shown on the digital inventory given to the Magistrate. If the location cannot be determined, the test is still saved and the record is flagged as having no coordinates.</string>
+
+    <!--
+        UI polish pass (TODO.md Phase 2). Only the strings the layouts reference by name are
+        centralised here; screen copy that is not reused stays inline with its layout.
+    -->
+    <string name="common_back">← Back</string>
+    <string name="badge_back">← Back</string>
+    <string name="badge_hint">e.g. SIH26231-OFF7</string>
 </resources>

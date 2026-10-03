@@ -17,8 +17,12 @@ object VisionNative {
     /**
      * Must equal `kVisionAbiVersion` in `src/main/cpp/vision_jni.h`.
      * Bumped whenever the C++ result struct or calling convention changes.
+     *
+     * 3 adds the colour stage: perspective rectification, calibrated Lab, CIEDE2000, the
+     * presumptive classification, and the reference card profile version and validation status
+     * those numbers depend on.
      */
-    const val VISION_ABI_VERSION = 1
+    const val VISION_ABI_VERSION = 3
 
     init {
         System.loadLibrary("drugvision")
@@ -37,4 +41,16 @@ object VisionNative {
      * Returns the generated marker side in pixels, negative on failure.
      */
     external fun nativeArucoSelfTest(): Int
+
+    /**
+     * The real CV stage: JPEG bytes in, [CvMeasurement] out.
+     *
+     * All decoding, marker detection, homography rectification, ROI selection, calibration,
+     * colour conversion, CIEDE2000 and classification happen in C++/OpenCV
+     * (cv_pipeline.cpp). The only JNI work is unpacking the byte array and filling the
+     * [CvColorimetryMeasurement] and [CvMeasurement] constructors - deliberately no colour maths
+     * on this side, so there is exactly one implementation to test and no chance of two
+     * disagreeing.
+     */
+    external fun nativeProcessImage(jpeg: ByteArray): CvMeasurement
 }

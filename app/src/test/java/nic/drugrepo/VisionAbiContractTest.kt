@@ -1,5 +1,6 @@
 package nic.drugrepo
 
+import nic.drugrepo.vision.CvColorimetryMeasurement
 import nic.drugrepo.vision.VisionNative
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,8 +24,11 @@ import org.junit.Test
 class VisionAbiContractTest {
 
     @Test
-    fun abiVersionIsOne() {
-        assertEquals(1, VisionNative.VISION_ABI_VERSION)
+    fun abiVersionMatchesTheCxxHeader() {
+        // 3 since the homography rectification and the colour stage were added. Kept as an
+        // explicit number rather than a regex over the header so the JVM gate still runs where the
+        // C++ one cannot.
+        assertEquals(3, VisionNative.VISION_ABI_VERSION)
     }
 
     @Test
@@ -38,11 +42,51 @@ class VisionAbiContractTest {
             java.lang.reflect.Modifier.isStatic(version.modifiers),
         )
 
-        for (name in listOf("nativeOpenCvVersion", "nativeArucoSelfTest")) {
-            val method = type.getDeclaredMethod(name)
+        // Parameter types are declared per entry point: nativeProcessImage takes the JPEG bytes.
+        val entryPoints = mapOf(
+            "nativeOpenCvVersion" to emptyArray(),
+            "nativeArucoSelfTest" to emptyArray(),
+            "nativeProcessImage" to arrayOf(ByteArray::class.java),
+        )
+        for ((name, parameterTypes) in entryPoints) {
+            val method = type.getDeclaredMethod(name, *parameterTypes)
             assertFalse(
                 "$name must stay an instance method for the same JNI mangling reason",
                 java.lang.reflect.Modifier.isStatic(method.modifiers),
+            )
+        }
+    }
+
+    @Test
+    fun colorimetryResultHasTheShapeTheJniConstructorExpects() {
+        // The C++ side calls one constructor with an exact 29-argument descriptor
+        // (kColorimetryCtorSignature). Reflection counts the same arguments here, so a Kotlin
+        // signature change and the native descriptor cannot drift apart without a failure on the
+        // JVM instead of NoSuchMethodError on a device mid-capture.
+        val constructor = CvColorimetryMeasurement::class.java.constructors.single()
+        val parameters = constructor.parameters
+        assertEquals(29, parameters.size)
+        assertEquals(Int::class.java, parameters[0].type)
+        assertEquals(Int::class.java, parameters[1].type)
+        assertEquals(Int::class.java, parameters[2].type)
+        assertEquals(Int::class.java, parameters[3].type)
+        assertEquals(Int::class.java, parameters[4].type)
+        assertEquals(Int::class.java, parameters[5].type)
+        assertEquals(java.lang.Boolean.TYPE, parameters[6].type)
+        // Nineteen doubles, then three strings. A Double where an Int was declared would still
+        // compile on both sides and only fail in JNI argument marshalling at runtime.
+        for (index in 7..25) {
+            assertEquals(
+                "parameter $index must be a Double",
+                java.lang.Double.TYPE,
+                parameters[index].type,
+            )
+        }
+        for (index in 26..28) {
+            assertEquals(
+                "parameter $index must be a String",
+                java.lang.String::class.java,
+                parameters[index].type,
             )
         }
     }

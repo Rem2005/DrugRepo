@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    UI palette for the prototype (TODO.md Phase 2). Deliberately small: one restrained
+    teal accent for a technical field tool, neutral greys for surfaces, and three result
+    colours that are distinguishable by name as well as by colour - the text in every
+    result view always spells out POSITIVE / NEGATIVE / INCONCLUSIVE, so colour is never
+    the only signal (accessibility, and it must survive a greyscale screen).
+-->
+<resources>
+    <color name="background">#F4F6F8</color>
+    <color name="surface">#FFFFFF</color>
+
+    <color name="primary">#12626F</color>
+    <color name="primary_dark">#0C4A55</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="text_primary">#16232A</color>
+    <color name="text_secondary">#5B6B73</color>
+    <color name="divider">#DFE4E8</color>
+
+    <color name="result_positive_text">#A8231B</color>
+    <color name="result_positive_bg">#FBEAE8</color>
+    <color name="result_negative_text">#1F5C24</color>
+    <color name="result_negative_bg">#E7F2E8</color>
+    <color name="result_inconclusive_text">#7A5900</color>
+    <color name="result_inconclusive_bg">#FFF6E0</color>
+
+    <color name="demo_text">#8A5300</color>
+    <color name="demo_bg">#FFF3E0</color>
+
+    <color name="overlay_scrim">#B3000000</color>
+</resources>

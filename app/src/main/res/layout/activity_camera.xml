@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Camera. Presentation only: the preview, the countdown status (tvStatus) and the capture
+    button are exactly where the Camera2 code expects them. The framing instruction sits
+    above the capture button so it never covers the viewfinder the officer is aiming at.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:fitsSystemWindows="true">
+
+    <TextureView
+        android:id="@+id/textureView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="@color/overlay_scrim"
+        android:gravity="center"
+        android:minHeight="@dimen/touch_target"
+        android:padding="12dp"
+        android:text="Preparing camera..."
+        android:textColor="@color/on_primary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="@dimen/screen_margin"
+        android:layout_marginRight="@dimen/screen_margin"
+        android:layout_marginBottom="@dimen/section_gap"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_overlay_panel"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.2"
+            android:padding="12dp"
+            android:text="Position the test and reference card inside the frame"
+            android:textColor="@color/on_primary"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnCapture"
+            style="@style/Widget.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="12dp"
+            android:text="Capture" />
+    </LinearLayout>
+
+</RelativeLayout>

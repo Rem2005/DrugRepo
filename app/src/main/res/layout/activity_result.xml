@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_margin">
+
+        <TextView
+            android:id="@+id/tvBack"
+            style="@style/Text.BackLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/common_back"
+            android:text="@string/common_back" />
+
+        <!-- Result: the one thing the officer came for, so it gets the largest type. -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:gravity="center_horizontal">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PRESUMPTIVE RESULT" />
+
+            <TextView
+                android:id="@+id/tvResult"
+                style="@style/Text.ResultValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:text="RESULT" />
+
+            <TextView
+                android:id="@+id/tvDemo"
+                style="@style/Text.Pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_pill"
+                android:backgroundTint="@color/demo_bg"
+                android:text="DEMO/MOCK"
+                android:textColor="@color/demo_text" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/Text.SectionLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="TEST INFORMATION" />
+
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                style="@style/Widget.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    style="@style/Text.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Officer" />
+
+                <TextView
+                    android:id="@+id/tvOfficer"
+                    style="@style/Text.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/Widget.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    style="@style/Text.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="CIEDE2000" />
+
+                <TextView
+                    android:id="@+id/tvDeltaE"
+                    style="@style/Text.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/Widget.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    style="@style/Text.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Record integrity" />
+
+                <TextView
+                    android:id="@+id/tvIntegrity"
+                    style="@style/Text.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOCK" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDetails"
+                style="@style/Text.Support"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Details" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSave"
+            style="@style/Widget.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="Save Record" />
+
+        <Button
+            android:id="@+id/btnViewRecords"
+            style="@style/Widget.Button.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="View Test Records" />
+
+        <Button
+            android:id="@+id/btnHome"
+            style="@style/Widget.Button.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="Back to Home" />
+
+    </LinearLayout>
+</ScrollView>

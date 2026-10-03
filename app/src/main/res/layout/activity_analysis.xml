@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Analysis. The step list is static text: it states what the pipeline does, and deliberately
+    does not fake a progress value. AnalysisActivity does not drive it.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_margin">
+
+    <TextView
+        style="@style/Text.ScreenTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Analyzing Test" />
+
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/section_gap"
+        android:indeterminateTint="@color/primary" />
+
+    <TextView
+        android:id="@+id/tvAnalysisStatus"
+        style="@style/Text.Support"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/section_gap"
+        android:gravity="center"
+        android:text="Processing captured image…" />
+
+    <LinearLayout
+        style="@style/Widget.Card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/section_gap">
+
+        <TextView
+            style="@style/Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Checking image\nAnalyzing reaction\nPreparing result"
+            android:lineSpacingMultiplier="1.4" />
+    </LinearLayout>
+
+    <TextView
+        style="@style/Text.Pill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/item_gap"
+        android:background="@drawable/bg_pill"
+        android:backgroundTint="@color/demo_bg"
+        android:text="DEMO ANALYSIS"
+        android:textColor="@color/demo_text" />
+
+    </LinearLayout>
+</LinearLayout>

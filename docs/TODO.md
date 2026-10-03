@@ -12,9 +12,9 @@
 
 ## Phase 1 — Foundation & Persistence
 - [ ] Define Room entities matching the auditable schema (architecture.md §7).
-- [ ] Implement SQLCipher encryption; database passphrase protected by a Keystore-wrapped key.
-- [ ] Implement DAO for inserting and reading chained records; block UPDATE/DELETE of sealed records at the DAO level.
-- [ ] Tests: insert/read round trip; update and delete are rejected.
+- [x] Implement SQLCipher encryption; database passphrase protected by a Keystore-wrapped key.
+- [x] Implement DAO for inserting and reading chained records; block UPDATE/DELETE of sealed records at the DAO level.
+- [x] Tests: insert/read round trip; update and delete are rejected.
 
 ## Phase 2 — Camera & UI
 - [ ] Officer entry screen (badge ID) and device-credential unlock.
@@ -26,22 +26,26 @@
 
 ## Phase 3 — Image Processing (C++/OpenCV)
 - [ ] YUV to RGB and sRGB-to-linear conversion with unit tests.
-- [ ] ArUco 4-marker detection.
-- [ ] Homography rectification to 500x500.
-- [ ] Laplacian-variance blur gate and L* glare gate (thresholds in config).
-- [ ] Tests: fixture images (sharp, blurred, glare, missing marker).
+- [x] ArUco detection over the captured JPEG against the profile's dictionary (`DICT_4X4_50`), with explicit failure statuses; no centre fallback — see `docs/CV_PIPELINE.md`.
+- [x] Homography rectification to the profile's 500x500 card; regions reported in rectified card coordinates and required to lie inside the card without overlapping.
+- [x] Laplacian variance and glare fraction reported as measurements (thresholds deliberately not applied — no validated thresholds exist).
+- [x] Tests: fixture images (markers present/absent, wrong card/partial marker set, invalid homography, invalid input, byte-identical determinism), asserted both in the native harness and across JNI.
+- [x] Real capture end-to-end on device: a single physical capture was decoded and analysed through `RealCvTestAnalyzer` and the full result screen. It honestly reported `kCvStatusNoMarkers` (no reference card in frame) and recorded no colour values. Confirms the no-centre-fallback path; it does not confirm colour measurement on a real card.
 
 ## Phase 4 — Colour Analysis
-- [ ] Swatch extraction; enforce minimum swatch count and conditioning check.
-- [ ] Pseudo-inverse CCM derivation; apply to ROI.
-- [ ] Linear RGB to XYZ (D65) to CIE Lab*.
-- [ ] Full CIEDE2000 per architecture.md §4.
-- [ ] Tests: CCM recovers a known synthetic transform; CIEDE2000 matches the 34 Sharma et al. (2005) pairs within 1e-4.
+- [x] Swatch extraction (six profile swatches, measured separately then averaged with equal weight); minimum count and conditioning check enforced before any CCM is fitted.
+- [x] CCM solve in linear light, `M = C_ideal . C_obs^T (C_obs . C_obs^T)^-1`, guarded by normalized covariance isotropy and a maximum per-channel gain; fails closed rather than fitting a matrix to rank-deficient or collinear swatches.
+- [x] Linear RGB to XYZ (D65) to CIE L*a*b*.
+- [x] Full CIEDE2000 per architecture.md §4 (kL = kC = kH = 1, Sharma formulation).
+- [x] CCM currently inert: the only profile is PROVISIONAL and carries no authoritative patch colours, so no matrix is applied. Applying one fitted to invented targets would launder placeholder data into a "calibrated" measurement.
+- [x] Tests: CCM recovers a known synthetic transform and is deterministic; all 34 Sharma et al. (2005) supplementary pairs match within 1e-4, with symmetry, zero-distance, sRGB-companding and Lab-anchor checks.
+- [ ] Ship the calibrated path against a profile that has authoritative swatch colours. Blocked on kit data.
 
 ## Phase 5 — Decision Logic
-- [ ] Prototype decision-boundary mechanism driven by a config table with an INCONCLUSIVE band.
-- [ ] Do NOT invent chemical thresholds; mark all values MOCK.
-- [ ] Display "MOCK DATA / presumptive only" in UI and PDF while reference data is unvalidated.
+- [x] Decision-boundary mechanism driven by a config table in the reference profile, with a genuine INCONCLUSIVE band (currently `<= 2.0` positive, `>= 5.0` negative, between is inconclusive).
+- [x] No chemical thresholds invented; the shipped boundary values are placeholders, labelled MOCK, and every one of them lives in `reference_profile.cpp` so replacing them is a one-file change.
+- [x] Presumptive-only labelling propagates from `ProfileValidation::kUnvalidated` into `AnalysisResult.demo`, the analyzer message, the result screen badge, and the record's `reference_data_version`.
+- [ ] Enforce "no authority claim" in the PDF certificate. Blocked on Phase 7.
 - [ ] Replace with validated reference data before claiming analytical validity.
 
 ## Phase 6 — Cryptographic Integrity
@@ -64,3 +68,14 @@
 - [ ] mTLS upload of chained records; server returns acknowledgement of latest hash (off-device anchor).
 - [ ] Tests: sync never blocks or alters the local chain.
 Offline Searchable Log: Every test is stored on the device, works without internet, and can be searched and exported as a PDF certificate.
+
+## Phase 9 — CV Hardening (not in the original roadmap)
+
+- [x] Remove the prototype centre fallback. It produced plausible numbers from frames with no card in them.
+- [x] Reject extra foreign markers even when all four expected markers are present. An overlapping second card can displace a detection, and a required-set check alone would report the wrong card.
+- [ ] Implement `ComparisonTarget::kProfileReferenceLab`. Only `kMeasuredReferencePatches` works today; an authoritative kit profile will need the comparison-target path.
+- [ ] Decide what happens when a profile *requests* calibration but the CCM solve fails. Today the failure is recorded and the uncorrected measurement continues; with authoritative data this may need to abort instead.
+- [x] Fix a double-companding defect on the calibrated path: the CCM acts in linear light, but its output was being fed back through the sRGB transfer function by the Lab conversion. Reported corrected channels are now re-encoded exactly once, and a test runs the calibrated branch against a profile with authoritative swatch colours so the branch is no longer untested.
+- [x] Fix the CCM contract: a refused solve used to leave a half-written matrix in the caller's array. It now solves into a local and copies out only on success.
+- [x] Reject a NaN in the CCM's ideal targets, not just in the observations.
+- [ ] Quality metrics (Laplacian variance, glare) are measured and reported but never gated. Thresholding needs validated thresholds.

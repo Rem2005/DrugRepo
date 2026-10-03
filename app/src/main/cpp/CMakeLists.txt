@@ -24,10 +24,12 @@ set(OpenCV_DIR "${OPENCV_SDK_ROOT}/jni/abi-${ANDROID_ABI}")
 
 # objdetect carries the aruco module (architecture.md section 4.3) and the ArucoDetector
 # API required for OpenCV 4.7+. imgproc and core are the rest of the Phase 3/4 pipeline.
+# imgcodecs is the JPEG decode/encode half of the captured frame (cv::imdecode in
+# cv_pipeline.cpp); it is a separate OpenCV module, hence a separate component here.
 # The OpenCV config declares the full transitive closure of third-party static libs
 # (tbb, protobuf, libjpeg-turbo, ...) via INTERFACE_LINK_LIBRARIES, so linking these three
 # targets is sufficient.
-find_package(OpenCV REQUIRED COMPONENTS core imgproc objdetect)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs objdetect)
 
 # ponytail: libdrugvision.so is ~10 MB and the APK ~51 MB, because objdetect's imported
 # target drags in dnn -> protobuf/tbb and the whole 3rdparty closure even though Phase 3/4
@@ -36,6 +38,9 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc objdetect)
 
 add_library(drugvision SHARED
     vision_jni.cpp
+    cv_pipeline.cpp
+    colorimetry.cpp
+    reference_profile.cpp
 )
 
 target_link_libraries(drugvision
@@ -63,6 +68,9 @@ if(VISION_NATIVE_TEST)
     add_library(vision_native_test SHARED
         vision_test.cpp
         vision_jni.cpp
+        cv_pipeline.cpp
+        colorimetry.cpp
+        reference_profile.cpp
     )
 
     # Same mixed-case spelling as drugvision above, and required to match: the SDK config

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_margin">
+
+        <TextView
+            android:id="@+id/tvBack"
+            style="@style/Text.BackLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/badge_back"
+            android:text="@string/badge_back" />
+
+        <TextView
+            style="@style/Text.ScreenTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="New Test" />
+
+        <TextView
+            style="@style/Text.Support"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="Prepare the field test card, then verify the officer badge before opening the camera." />
+
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/section_gap">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BEFORE YOU CAPTURE" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:lineSpacingMultiplier="1.3"
+                android:text="• Lay the test card flat, in even light.\n• Keep the reference swatches visible.\n• Wait for the countdown before capturing." />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnOpenCamera"
+            style="@style/Widget.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="Enter Officer Badge" />
+
+        <Button
+            android:id="@+id/btnBack"
+            style="@style/Widget.Button.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="Cancel" />
+
+    </LinearLayout>
+</ScrollView>

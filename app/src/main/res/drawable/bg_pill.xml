@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Status pill. The colour comes from android:backgroundTint at the use site, so one shape
+    serves the DEMO/MOCK tag and the three result states.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <corners android:radius="20dp" />
+</shape>

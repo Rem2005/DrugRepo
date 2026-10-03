@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Records. The rows themselves are item_record.xml, inflated by RecordsActivity. This screen
+    only provides the container and the empty state.
+
+    fitsSystemWindows replaces this root's padding with the system bar insets, so the 16dp
+    screen margin lives on the inner container instead.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_margin">
+
+    <TextView
+        android:id="@+id/tvBack"
+        style="@style/Text.BackLink"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/common_back"
+        android:text="@string/common_back" />
+
+    <TextView
+        style="@style/Text.ScreenTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/item_gap"
+        android:text="Test Records" />
+
+    <TextView
+        style="@style/Text.Support"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Every saved test on this device, in capture order. Results are presumptive and DEMO/MOCK until validated reference data exists." />
+
+    <ScrollView
+        android:id="@+id/listScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/section_gap"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/recordList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="24dp"
+        android:text="No test records yet."
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btnHome"
+        style="@style/Widget.Button.Secondary"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/button_height"
+        android:layout_marginTop="12dp"
+        android:text="Back to Home" />
+
+    </LinearLayout>
+</LinearLayout>

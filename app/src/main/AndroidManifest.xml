@@ -49,7 +49,21 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!--
+        Backup is off deliberately (TODO.md Phase 1 task 2).
+
+        The ledger is encrypted under a key that lives in this device's Android Keystore and
+        cannot be exported (architecture.md section 5). Android Auto Backup copies app files
+        but never Keystore material, so a restored copy of the database would arrive with no
+        way to decrypt it: an unreadable ledger that looks like data loss rather than a
+        restore. Restoring the sealed ledger to another device also requires re-sealing every
+        record with this device's signing key, which would misrepresent provenance - the
+        keystore-wrapped key is the one thing that must not travel.
+
+        device-to-device transfer is disabled for the same reason.
+    -->
     <application
+        android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true">
 
@@ -61,6 +75,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".HomeActivity" />
+        <activity android:name=".BadgeActivity" />
+        <activity android:name=".NewTestActivity" />
+        <activity android:name=".CameraActivity" />
+        <activity android:name=".AnalysisActivity" />
+        <activity android:name=".ResultActivity" />
+        <activity android:name=".RecordsActivity" />
+        <activity android:name=".DetailActivity" />
 
     </application>
 
