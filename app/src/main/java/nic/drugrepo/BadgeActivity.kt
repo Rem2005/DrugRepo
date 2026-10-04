@@ -5,6 +5,7 @@ import android.app.KeyguardManager
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import nic.drugrepo.analysis.AnalysisProfile
 import nic.drugrepo.databinding.ActivityBadgeBinding
 
 /**
@@ -52,7 +53,7 @@ class BadgeActivity : Activity() {
             return
         }
         val confirm = keyguard.createConfirmDeviceCredentialIntent(
-            "Unlock DrugRepo",
+            "Unlock Forenza",
             "Confirm the device credential to start a new test",
         )
         if (confirm == null) {
@@ -80,7 +81,15 @@ class BadgeActivity : Activity() {
 
     private fun openCamera(badge: String) {
         startActivity(
-            Intent(this, CameraActivity::class.java).putExtra("badgeId", badge),
+            Intent(this, CameraActivity::class.java)
+                .putExtra("badgeId", badge)
+                // The reference profile this test runs against, forwarded so the badge stage is the
+                // single gate in front of the camera for both the field path and Demonstration
+                // Mode. Only DemonstrationModeActivity sets it, it is a fixed synthetic constant
+                // rather than anything the officer can choose, and an absent or unrecognised value
+                // still resolves to the field profile (see AnalysisProfile). The badge itself is
+                // validated exactly as it is for a field test.
+                .putExtra(AnalysisProfile.EXTRA, intent.getStringExtra(AnalysisProfile.EXTRA)),
         )
         finish()
     }

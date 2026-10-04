@@ -32,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/item_gap"
-            android:text="Enter the officer badge ID before starting the field test." />
+            android:text="Enter the officer badge ID to start." />
 
         <LinearLayout
             style="@style/Widget.Card"
@@ -86,7 +86,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/item_gap"
-                android:text="The device credential is confirmed before a test starts, where the device has one set. Without a PIN, pattern or password the test proceeds without it." />
+                android:text="Confirmed before a test starts where the device has a PIN, pattern or password." />
         </LinearLayout>
 
         <Button

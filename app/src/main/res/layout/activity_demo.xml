@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Demonstration Mode.
+
+    One screen, one button, no choices. A demonstration is meant to look like the real workflow,
+    so this screen states what the mode is, then hands over to the same badge, camera and analysis
+    stages the field path uses. The only difference between a demonstration and a field test is the
+    reference profile the measured colour is compared against.
+
+    There is deliberately no "MATCH" or "NO-MATCH" option here, and no scenario control of any kind:
+    the card physically placed in front of the camera is what decides the outcome, and a UI control
+    that appeared to choose the answer would misrepresent how the result was reached.
+
+    The notice block is first and is not dismissible. It is the reason this screen exists.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_margin">
+
+        <TextView
+            android:id="@+id/tvBack"
+            style="@style/Text.BackLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/common_back"
+            android:text="@string/common_back" />
+
+        <TextView
+            style="@style/Text.ScreenTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="@string/demo_title" />
+
+        <TextView
+            style="@style/Text.SectionLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/demo_subtitle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:layout_marginBottom="@dimen/card_gap"
+            android:background="@drawable/bg_demo_notice"
+            android:orientation="vertical"
+            android:padding="@dimen/card_padding">
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/demo_notice_line_1"
+                android:textColor="@color/demo_text"
+                android:textStyle="bold" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:text="@string/demo_notice_line_2"
+                android:textColor="@color/demo_text"
+                android:textStyle="bold" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:text="@string/demo_notice_line_3"
+                android:textColor="@color/demo_text"
+                android:textStyle="bold" />
+
+            <TextView
+                style="@style/Text.Support"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/demo_notice_detail"
+                android:textColor="@color/demo_text" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/demo_intro" />
+
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/demo_how_title" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:lineSpacingMultiplier="1.35"
+                android:text="@string/demo_step_1" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.35"
+                android:text="@string/demo_step_2" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.35"
+                android:text="@string/demo_step_3" />
+
+            <TextView
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.35"
+                android:text="@string/demo_step_4" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnContinue"
+            style="@style/Widget.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:text="@string/demo_continue" />
+
+        <TextView
+            style="@style/Text.Support"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_gap"
+            android:text="@string/demo_footer" />
+
+    </LinearLayout>
+</ScrollView>

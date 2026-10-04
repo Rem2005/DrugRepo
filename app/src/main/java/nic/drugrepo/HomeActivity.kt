@@ -26,6 +26,10 @@ class HomeActivity : Activity() {
             startActivity(Intent(this, RecordsActivity::class.java))
         }
 
+        binding.btnDemo.setOnClickListener {
+            startActivity(Intent(this, DemoModeActivity::class.java))
+        }
+
         loadRecent(binding)
     }
 

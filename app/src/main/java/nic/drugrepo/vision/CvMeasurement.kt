@@ -138,6 +138,14 @@ class CvColorimetryMeasurement(
     /** Size of the rectified card the reference and reaction regions were measured on. */
     val rectifiedWidth: Int,
     val rectifiedHeight: Int,
+    /**
+     * SYNTHETIC DEMONSTRATION ONLY. True when the measured reaction colour sits within the
+     * synthetic profile's demonstration tolerance of one of its demonstration anchors.
+     *
+     * Always false for a field profile, which holds no anchors to compare against, so this can never
+     * be true for a casework result. It describes a colour in a synthetic dataset and nothing else.
+     */
+    val anchorMatch: Int,
     /** True only when a colour correction matrix was fitted and applied (architecture.md 4.4). */
     val ccmApplied: Boolean,
     /** CIEDE2000 with kL = kC = kH = 1, between the reference colour and the reaction colour. */
@@ -162,12 +170,30 @@ class CvColorimetryMeasurement(
     val reactionLabL: Double,
     val reactionLabA: Double,
     val reactionLabB: Double,
+    /**
+     * SYNTHETIC DEMONSTRATION ONLY. CIEDE2000 from the measured reaction colour to the nearest
+     * synthetic demonstration anchor. Zero for a field profile.
+     *
+     * This is distinct from [deltaE2000], which remains the comparison against the reference
+     * patches measured in this same image and is what the field path uses. The anchor distance is
+     * what a synthetic demonstration reports instead, and both are carried so neither is lost.
+     */
+    val anchorDeltaE2000: Double,
     /** Profile version string; becomes part of the record's reference_data_version. */
     val profileVersion: String,
     /** One sentence saying where the profile's numbers came from. */
     val profileProvenance: String,
     /** Reagent this card is designed for, e.g. MARQUIS. */
     val reagentType: String,
+    /**
+     * SYNTHETIC DEMONSTRATION ONLY. Which demonstration anchor the measured colour sits nearest,
+     * e.g. a flow, a target name from the synthetic dataset and the expected colour phrase.
+     * Empty for a field profile.
+     *
+     * A target name here identifies an entry in a synthetic demonstration dataset. It is not a
+     * substance identified in a sample and must never be presented as one.
+     */
+    val anchorLabel: String,
 ) : Serializable {
 
     /** True when these numbers come from validated kit data rather than placeholders. */
@@ -198,6 +224,26 @@ class CvColorimetryMeasurement(
             CLASSIFICATION_POSITIVE -> "PRESUMPTIVE POSITIVE"
             CLASSIFICATION_NEGATIVE -> "PRESUMPTIVE NEGATIVE"
             else -> "INCONCLUSIVE"
+        }
+
+    /**
+     * True when the measured reaction colour sat within the synthetic profile's demonstration
+     * tolerance of one of its demonstration anchors. Always false for a field profile.
+     */
+    val isDemonstrationAnchorMatch: Boolean get() = anchorMatch == 1
+
+    /**
+     * The demonstration outcome, for a synthetic profile only.
+     *
+     * Deliberately worded as DEMONSTRATIVE rather than PRESUMPTIVE: nothing measured against a
+     * synthetic dataset is a presumptive finding, and a field profile returns an empty string so
+     * this text cannot reach a casework screen at all.
+     */
+    val demonstrationLabel: String
+        get() = when {
+            !isSyntheticProfile -> ""
+            anchorMatch == 1 -> "DEMONSTRATIVE MATCH"
+            else -> "DEMONSTRATIVE NO MATCH"
         }
 
     companion object {

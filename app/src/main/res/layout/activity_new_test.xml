@@ -32,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/item_gap"
-            android:text="Prepare the field test card, then verify the officer badge before opening the camera." />
+            android:text="Verify the officer badge, then capture the test card." />
 
         <LinearLayout
             style="@style/Widget.Card"
@@ -51,8 +51,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/item_gap"
-                android:lineSpacingMultiplier="1.3"
-                android:text="• Lay the test card flat, in even light.\n• Keep the reference swatches visible.\n• Wait for the countdown before capturing." />
+                android:lineSpacingMultiplier="1.45"
+                android:text="•  Lay the test card flat, in even light.\n•  Keep the reference swatches visible.\n•  Wait for the countdown before capturing." />
         </LinearLayout>
 
         <Button

@@ -1,5 +1,7 @@
 #include "reference_profile.h"
 
+#include <string>
+
 namespace {
 
 // TWO PROFILES, ONE PIPELINE. READ THIS BEFORE CHANGING ANY NUMBER BELOW.
@@ -208,6 +210,7 @@ constexpr ReferenceCardProfile kProfiles[] = {
         /* sourceStatus */ "OFFICIAL_QUALITATIVE_REFERENCE. NUMERICAL CALIBRATION: UNVALIDATED. DECISION BOUNDARIES: UNVALIDATED.",
         /* syntheticAnchors */ {},
         /* syntheticAnchorCount */ 0,
+        /* syntheticAnchorMatchAtOrBelow */ 0.0,
         /* provenance */
         "OFFICIAL QUALITATIVE REFERENCE: NCB / NICFS documentation supplies the Test A, B and E "
         "procedures and expected colour names only. NUMERICAL CALIBRATION: UNVALIDATED - no "
@@ -236,7 +239,12 @@ constexpr ReferenceCardProfile kProfiles[] = {
         // a synthetic colour as a corrected measurement, which is the one thing a colour
         // correction matrix must never do.
         /* calibrationMode */ CalibrationMode::kNoneProvisional,
-        /* comparisonTarget */ ComparisonTarget::kMeasuredReferencePatches,
+        // SYNTHETIC DEMONSTRATION ONLY: the measured reaction colour is compared against the
+        // nearest of this profile's own synthetic anchors rather than against the card's printed
+        // swatches. Both comparisons run the same RGB -> Lab -> CIEDE2000 path; only the thing the
+        // measured colour is compared to differs. The field profile keeps
+        // kMeasuredReferencePatches, so nothing about real casework changes.
+        /* comparisonTarget */ ComparisonTarget::kNearestSyntheticAnchor,
         /* classification */ kSyntheticDemonstrationClassification,
         /* qualitativeProtocols */ {kNoQualitativeProtocol},
         /* qualitativeProtocolCount */ 0,
@@ -248,6 +256,10 @@ constexpr ReferenceCardProfile kProfiles[] = {
                                 kSyntheticAnchors[6], kSyntheticAnchors[7], kSyntheticAnchors[8],
                                 kSyntheticAnchors[9], kSyntheticAnchors[10]},
         /* syntheticAnchorCount */ kSyntheticAnchorCount,
+        // The demonstration tolerance, and the reasoning behind 18.0, are documented on the field
+        // itself in reference_profile.h. It is a boundary for a synthetic dataset and says nothing
+        // about any reagent or substance.
+        /* syntheticAnchorMatchAtOrBelow */ 18.0,
         /* provenance */
         "SYNTHETIC COLOUR ANCHORS: values chosen for this project, not measured from a physical "
         "NCB kit and not published by NCB or NICFS. NUMERICAL CALIBRATION: SYNTHETIC. DECISION "
@@ -269,6 +281,83 @@ const ReferenceCardProfile& ncbProfile() {
 
 const ReferenceCardProfile& syntheticProfile() {
     return kProfiles[kSyntheticProfileIndex];
+}
+
+namespace {
+
+/**
+ * Parses a stored "#RRGGBB" anchor colour into Lab with the pipeline's own colour science, so the
+ * demonstration comparison cannot drift from the one every other number in the app goes through.
+ *
+ * Returns false for anything that is not exactly seven characters of "#" followed by six hex
+ * digits. That strictness is the point: the anchors are deliberately stored as text, so a value
+ * that is not a colour must be skipped rather than coerced into one, and a malformed entry must
+ * never become a distance that some threshold could be compared against.
+ */
+bool hexToLab(const char* hex, Lab& out) {
+    if (hex == nullptr) {
+        return false;
+    }
+    // strlen without <cstring>: the anchors are NUL-terminated literals in the table above, so the
+    // scan is bounded by the literal itself rather than trusted to a fixed length.
+    int length = 0;
+    while (hex[length] != '\0' && length < 7) {
+        ++length;
+    }
+    if (length != 7 || hex[0] != '#') {
+        return false;
+    }
+    int channel[3] = {0, 0, 0};
+    for (int c = 0; c < 3; ++c) {
+        int value = 0;
+        for (int d = 0; d < 2; ++d) {
+            const char ch = hex[1 + c * 2 + d];
+            int digit;
+            if (ch >= '0' && ch <= '9') {
+                digit = ch - '0';
+            } else if (ch >= 'a' && ch <= 'f') {
+                digit = ch - 'a' + 10;
+            } else if (ch >= 'A' && ch <= 'F') {
+                digit = ch - 'A' + 10;
+            } else {
+                return false;
+            }
+            value = value * 16 + digit;
+        }
+        channel[c] = value;
+    }
+    out = srgbToLab(channel[0] / 255.0, channel[1] / 255.0, channel[2] / 255.0);
+    return true;
+}
+
+}  // namespace
+
+SyntheticAnchorMatch nearestSyntheticAnchor(const ReferenceCardProfile& profile, Lab measuredLab) {
+    SyntheticAnchorMatch best;
+    for (int i = 0; i < profile.syntheticAnchorCount && i < kMaxSyntheticAnchors; ++i) {
+        const SyntheticAnchor& anchor = profile.syntheticAnchors[i];
+        // Both roles are scanned: an anchor is a colour transition, so either end of it is a
+        // demonstration colour the measured reaction could legitimately match.
+        for (int role = 0; role < 2; ++role) {
+            const char* hex = role == 0 ? anchor.hex1 : anchor.hex2;
+            const char* roleName = role == 0 ? anchor.role1 : anchor.role2;
+            Lab anchorLab;
+            if (hex == nullptr || roleName == nullptr || !hexToLab(hex, anchorLab)) {
+                continue;
+            }
+            const double delta = ciede2000(anchorLab, measuredLab);
+            if (best.found && delta >= best.deltaE) {
+                continue;
+            }
+            best.found = true;
+            best.deltaE = delta;
+            best.anchorIndex = i;
+            best.roleIndex = role + 1;
+            best.label = std::string(anchor.flow) + " / " + anchor.target + " / " + roleName +
+                         " (" + hex + "; expected " + anchor.expectedPhrase + ")";
+        }
+    }
+    return best;
 }
 
 const ReferenceCardProfile& activeProfile() {

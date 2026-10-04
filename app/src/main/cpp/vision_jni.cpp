@@ -165,6 +165,7 @@ Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*
         static_cast<jint>(colorimetry.swatchCount),
         static_cast<jint>(colorimetry.rectifiedWidth),
         static_cast<jint>(colorimetry.rectifiedHeight),
+        static_cast<jint>(colorimetry.anchorMatch),
         static_cast<jboolean>(colorimetry.ccmApplied != 0 ? JNI_TRUE : JNI_FALSE),
         static_cast<jdouble>(colorimetry.deltaE2000),
         static_cast<jdouble>(colorimetry.referenceRawR),
@@ -185,9 +186,11 @@ Java_nic_drugrepo_vision_VisionNative_nativeProcessImage(JNIEnv* env, jobject /*
         static_cast<jdouble>(colorimetry.reactionLabL),
         static_cast<jdouble>(colorimetry.reactionLabA),
         static_cast<jdouble>(colorimetry.reactionLabB),
+        static_cast<jdouble>(colorimetry.anchorDeltaE2000),
         env->NewStringUTF(colorimetry.profileVersion.c_str()),
         env->NewStringUTF(colorimetry.profileProvenance.c_str()),
-        env->NewStringUTF(colorimetry.reagentType.c_str()));
+        env->NewStringUTF(colorimetry.reagentType.c_str()),
+        env->NewStringUTF(colorimetry.anchorLabel.c_str()));
     if (colorimetryObject == nullptr) {
         return nullptr;
     }

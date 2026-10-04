@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Result screen.
+
+    Seven cards in a fixed order, because an officer reads this in one direction: what happened,
+    whose test it was, what was measured, how the geometry came out, what the calibration state
+    is, what the result is allowed to claim, and what the record will be sealed with.
+
+    Every section header sits INSIDE its card, immediately above its own rows. That is the only way
+    the seven sections can look like seven sections rather than seven headings floating between
+    eight boxes, and it means one spacing rule governs the whole screen.
+
+    The result itself is the largest text on the screen and the colour swatch in COLOUR ANALYSIS is
+    the measured evidence behind it. Developer diagnostics are not here: sharpness and glare are
+    measured and stored in the record, and are shown on the record's own screen.
+
+    Two row shapes, no more. item_detail_row.xml carries short terms beside short terms; the long
+    values (a demonstration anchor label, a provenance paragraph, a 64-character hash) use
+    item_result_note.xml with the value on its own line. Both are inflated in code, so this layout
+    declares containers and section headings and nothing else.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -20,7 +40,7 @@
             android:contentDescription="@string/common_back"
             android:text="@string/common_back" />
 
-        <!-- Result: the one thing the officer came for, so it gets the largest type. -->
+        <!-- ============================ RESULT ============================ -->
         <LinearLayout
             style="@style/Widget.Card"
             android:layout_width="match_parent"
@@ -32,107 +52,214 @@
                 style="@style/Text.SectionLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PRESUMPTIVE RESULT" />
+                android:text="RESULT" />
 
             <TextView
                 android:id="@+id/tvResult"
                 style="@style/Text.ResultValue"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/item_gap"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
                 android:text="RESULT" />
 
-            <TextView
-                android:id="@+id/tvDemo"
-                style="@style/Text.Pill"
+            <!-- Two pills, never one: which KIND of statement this is, and what it is worth. -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_pill"
-                android:backgroundTint="@color/demo_bg"
-                android:text="DEMO/MOCK"
-                android:textColor="@color/demo_text" />
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvDemo"
+                    style="@style/Text.Pill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_pill"
+                    android:text="DEMO ONLY"
+                    android:textColor="@color/demo_text" />
+
+                <TextView
+                    android:id="@+id/tvDemoSecond"
+                    style="@style/Text.Pill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_pill"
+                    android:text="SYNTHETIC DEMONSTRATION"
+                    android:textColor="@color/demo_text" />
+            </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            style="@style/Text.SectionLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="TEST INFORMATION" />
-
+        <!-- ========================= TEST INFORMATION ========================= -->
         <LinearLayout
             style="@style/Widget.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <LinearLayout
-                style="@style/Widget.Row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    style="@style/Text.RowLabel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Officer" />
-
-                <TextView
-                    android:id="@+id/tvOfficer"
-                    style="@style/Text.RowValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="—" />
-            </LinearLayout>
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TEST INFORMATION" />
 
             <LinearLayout
-                style="@style/Widget.Row"
+                android:id="@+id/rowsTestInfo"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
+                android:orientation="vertical" />
+        </LinearLayout>
 
-                <TextView
-                    style="@style/Text.RowLabel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="CIEDE2000" />
-
-                <TextView
-                    android:id="@+id/tvDeltaE"
-                    style="@style/Text.RowValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="—" />
-            </LinearLayout>
-
-            <LinearLayout
-                style="@style/Widget.Row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    style="@style/Text.RowLabel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Record integrity" />
-
-                <TextView
-                    android:id="@+id/tvIntegrity"
-                    style="@style/Text.RowValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MOCK" />
-            </LinearLayout>
+        <!-- ========================== COLOUR ANALYSIS ========================= -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
             <TextView
-                android:id="@+id/tvDetails"
-                style="@style/Text.Support"
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="COLOUR ANALYSIS" />
+
+            <!--
+                The measured colour, shown as a colour. Filled in code from the reaction region's
+                measured mean, so the swatch and the RGB row below it are the same measurement.
+                Hidden entirely when nothing was measured.
+            -->
+            <LinearLayout
+                android:id="@+id/swatchRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="Details" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/viewTestSwatch"
+                    android:layout_width="@dimen/swatch_size"
+                    android:layout_height="@dimen/swatch_size"
+                    android:background="@drawable/bg_swatch"
+                    android:contentDescription="@string/result_swatch_description" />
+
+                <TextView
+                    style="@style/Text.Support"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/result_swatch_caption" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/rowsColour"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ======================== CAPTURE &amp; GEOMETRY ========================== -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CAPTURE &amp; GEOMETRY" />
+
+            <LinearLayout
+                android:id="@+id/rowsGeometry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ============================ CALIBRATION ============================ -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CALIBRATION" />
+
+            <LinearLayout
+                android:id="@+id/rowsCalibration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
+                android:orientation="vertical" />
+
+            <!--
+                Provenance is kept in full, but out of the primary read. The calibration rows above
+                say what state the colour numbers are in; this is the several-hundred-character
+                statement of where the reference data came from, which matters on review and is
+                noise while an officer is reading an outcome. Collapsed by default, one tap away,
+                and it is not a new section - it lives inside CALIBRATION, which is where it belongs.
+            -->
+            <TextView
+                android:id="@+id/tvProvenanceToggle"
+                style="@style/Text.BackLink"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/result_show_provenance" />
+
+            <TextView
+                android:id="@+id/tvProvenance"
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="6dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- ==================== INTERPRETATION / SAFETY ========================= -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INTERPRETATION / SAFETY" />
+
+            <LinearLayout
+                android:id="@+id/rowsInterpretation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ========================= RECORD INTEGRITY ========================= -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RECORD INTEGRITY" />
+
+            <LinearLayout
+                android:id="@+id/rowsIntegrity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
+                android:orientation="vertical" />
         </LinearLayout>
 
         <Button
@@ -140,7 +267,6 @@
             style="@style/Widget.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="@dimen/button_height"
-            android:layout_marginTop="@dimen/item_gap"
             android:text="Save Record" />
 
         <Button

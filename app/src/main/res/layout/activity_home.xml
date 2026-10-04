@@ -21,7 +21,7 @@
             style="@style/Text.ScreenTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DrugRepo" />
+            android:text="@string/app_name" />
 
         <TextView
             android:id="@+id/tvSubtitle"
@@ -36,7 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/item_gap"
-            android:text="Capture and analyze a field test card on this device. Results are presumptive and always require laboratory confirmation." />
+            android:text="Capture and analyze a field test card on this device. Results are presumptive and require laboratory confirmation." />
 
         <LinearLayout
             style="@style/Widget.Card"
@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/item_gap"
                 android:layout_marginBottom="16dp"
-                android:text="Verify the officer badge, capture the test card, and analyze the reaction on device." />
+                android:text="Verify the badge, capture the card, analyze the reaction." />
 
             <Button
                 android:id="@+id/btnNewTest"
@@ -94,12 +94,47 @@
             android:layout_marginTop="12dp"
             android:text="View All Records" />
 
+        <!--
+            Demonstration Mode sits below the field path, never above it: field/real is the default
+            workflow and must stay the one an officer reaches first. This is the only in-app route to
+            the synthetic profile, and it goes through its own screen that states what a
+            demonstration is before offering one.
+        -->
+        <LinearLayout
+            style="@style/Widget.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/section_gap">
+
+            <TextView
+                style="@style/Text.ScreenTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/home_demo_heading"
+                android:textSize="18sp" />
+
+            <TextView
+                style="@style/Text.Support"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_gap"
+                android:layout_marginBottom="16dp"
+                android:text="@string/home_demo_body" />
+
+            <Button
+                android:id="@+id/btnDemo"
+                style="@style/Widget.Button.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/button_height"
+                android:text="@string/demo_title" />
+        </LinearLayout>
+
         <TextView
             style="@style/Text.Support"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/section_gap"
-            android:text="Version 0.1.0-prototype — offline, on-device, presumptive results only." />
+            android:text="v0.1.0 prototype · offline · presumptive only" />
 
     </LinearLayout>
 </ScrollView>

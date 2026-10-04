@@ -27,6 +27,7 @@
 
     <color name="demo_text">#8A5300</color>
     <color name="demo_bg">#FFF3E0</color>
+    <color name="demo_stroke">#E0B972</color>
 
     <color name="overlay_scrim">#B3000000</color>
 </resources>

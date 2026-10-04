@@ -5,8 +5,10 @@
 #include <cmath>
 #include <map>
 #include <numeric>
+#include <string>
 #include <vector>
 
+#include <android/log.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -16,6 +18,12 @@
 #include "colorimetry.h"
 
 namespace {
+
+// TEMPORARY DIAGNOSTIC. Triage only: decide whether a captured frame that should contain
+// DICT_4X4_50 markers has lost them before detection (A) or still has them and the production
+// path misses them (B). Grep logcat with: adb logcat -s DrugRepo-ArUco-DIAG:I
+// Delete this constant and both log blocks once the ArUco fault is identified.
+const char* const kArUcoDiagTag = "DrugRepo-ArUco-DIAG";
 
 // Scale a normalized profile rectangle onto the rectified card. Returns false when the rectangle
 // falls outside the card or is too small to be a measurement, which is a profile failure rather
@@ -137,6 +145,68 @@ CvFrame processJpeg(const uint8_t* data, size_t length,
         cv::threshold(gray, blown, cvConfig().glareBrightLevel, 255.0, cv::THRESH_BINARY);
         frame.glareFraction = static_cast<double>(cv::countNonZero(blown)) / gray.total();
 
+        // ===== TEMPORARY DIAGNOSTIC (ArUco A-vs-B triage). Remove before shipping. =====
+        // Diagnostic only. This block builds its OWN detector and its OWN id/corner vectors and
+        // never writes frame.* or the production ids/corners below, so it cannot change the
+        // sealed result; the production path runs afterwards exactly as it did before.
+        {
+            // Same dictionary id and the same corner-refinement method the production detector
+            // uses a few lines below (profile.arucoDictionary == DICT_4X4_50 == 0).
+            cv::aruco::DetectorParameters diagParameters;
+            diagParameters.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+            const cv::aruco::Dictionary diagDictionary =
+                cv::aruco::getPredefinedDictionary(profile.arucoDictionary);
+            const cv::aruco::ArucoDetector diagDetector(diagDictionary, diagParameters);
+
+            // There is NO preprocessing between cv::imdecode and the production detectMarkers
+            // call: cvtColor/Laplacian/threshold all write into separate Mats and `image` is
+            // passed through untouched. So this one detection is simultaneously the "raw decoded
+            // JPEG Mat" reading and the "exact Mat handed to the detector" reading.
+            __android_log_print(
+                ANDROID_LOG_INFO, kArUcoDiagTag,
+                "input Mat: width=%d height=%d channels=%d type=%d depth=%d elemSize=%zu "
+                "dictionary=%d (DICT_4X4_50=%d) refine=SUBPIX preprocessing=none",
+                image.cols, image.rows, image.channels(), image.type(), image.depth(),
+                image.elemSize(), static_cast<int>(profile.arucoDictionary),
+                static_cast<int>(cv::aruco::DICT_4X4_50));
+
+            std::vector<int> diagIds;
+            std::vector<std::vector<cv::Point2f>> diagCorners;
+            try {
+                diagDetector.detectMarkers(image, diagCorners, diagIds);
+
+                std::string idList = "[";
+                for (size_t i = 0; i < diagIds.size(); ++i) {
+                    if (i != 0) idList += ",";
+                    idList += std::to_string(diagIds[i]);
+                }
+                idList += "]";
+
+                __android_log_print(ANDROID_LOG_INFO, kArUcoDiagTag,
+                                    "diagnostic detectMarkers on raw decoded Mat: count=%zu ids=%s",
+                                    diagIds.size(), idList.c_str());
+
+                // Corner geometry for the first marker, so a detection at an unexpected scale or
+                // rotation is visible in the log instead of only its id.
+                if (!diagCorners.empty() && !diagCorners[0].empty()) {
+                    const cv::Point2f& c0 = diagCorners[0][0];
+                    const cv::Point2f& c1 = diagCorners[0][1];
+                    __android_log_print(ANDROID_LOG_INFO, kArUcoDiagTag,
+                                        "diagnostic first marker id=%d corner0=(%.1f,%.1f) "
+                                        "corner1=(%.1f,%.1f) corners=%zu",
+                                        diagIds.empty() ? -1 : diagIds[0], c0.x, c0.y, c1.x, c1.y,
+                                        diagCorners[0].size());
+                }
+            } catch (const cv::Exception& e) {
+                __android_log_print(ANDROID_LOG_ERROR, kArUcoDiagTag,
+                                    "diagnostic detectMarkers threw cv::Exception: %s", e.what());
+            } catch (const std::exception& e) {
+                __android_log_print(ANDROID_LOG_ERROR, kArUcoDiagTag,
+                                    "diagnostic detectMarkers threw std::exception: %s", e.what());
+            }
+        }
+        // ===== END TEMPORARY DIAGNOSTIC =====
+
         // STEP 1: detect the profile's markers (architecture.md section 4.3).
         cv::aruco::DetectorParameters parameters;
         parameters.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
@@ -155,6 +225,11 @@ CvFrame processJpeg(const uint8_t* data, size_t length,
                 frame.markerCorners.push_back(static_cast<int>(std::lround(corner.y)));
             }
         }
+
+        // TEMPORARY DIAGNOSTIC: production count, so it can be compared against the diagnostic
+        // count logged above on the same Mat. Remove with the block above.
+        __android_log_print(ANDROID_LOG_INFO, kArUcoDiagTag,
+                            "production detectMarkers: count=%zu", ids.size());
 
         if (ids.empty()) {
             // No centre fallback on this path. An explicit "there is no card in this frame" is
@@ -366,6 +441,37 @@ CvFrame processJpeg(const uint8_t* data, size_t length,
         frame.colorimetry.reactionLabB = reactionLab.b;
         frame.colorimetry.swatchCount = static_cast<int>(patchMeans.size());
         frame.colorimetry.classification = static_cast<int>(classify(profile, deltaE));
+
+        // SYNTHETIC DEMONSTRATION ONLY. When the profile says the measured reaction colour is to be
+        // compared against its synthetic anchors, that comparison runs here, on the reactionLab the
+        // camera produced, through the same srgbToLab and ciede2000 used for every other number
+        // above. Nothing is compared to a hardcoded outcome: the anchors are stored as hex text in
+        // the profile, converted to Lab only at this point, and the classification follows from the
+        // distance that results.
+        //
+        // A field profile never reaches this block. It keeps kMeasuredReferencePatches, and its
+        // classification is whatever classify() returned above, which for an unvalidated field
+        // profile is always INCONCLUSIVE. So this cannot weaken the field path, and no field result
+        // can carry an anchor number.
+        if (profile.comparisonTarget == ComparisonTarget::kNearestSyntheticAnchor &&
+            profile.syntheticAnchorCount > 0) {
+            const SyntheticAnchorMatch match = nearestSyntheticAnchor(profile, reactionLab);
+            if (match.found) {
+                frame.colorimetry.anchorDeltaE2000 = match.deltaE;
+                frame.colorimetry.anchorLabel = match.label;
+                frame.colorimetry.anchorMatch =
+                    match.deltaE <= profile.syntheticAnchorMatchAtOrBelow ? 1 : 0;
+                // Overrides the reference-patch classification above, deliberately. For a
+                // demonstration profile the meaningful statement is whether the measured colour sits
+                // on a demonstration colour, not how far it sits from this card's printed swatches,
+                // and reporting the latter as the outcome is what made the first synthetic run
+                // demonstrate a threshold without demonstrating a colour.
+                frame.colorimetry.classification =
+                    static_cast<int>(match.deltaE <= profile.syntheticAnchorMatchAtOrBelow
+                                         ? CvClassification::kPositive
+                                         : CvClassification::kNegative);
+            }
+        }
 
         frame.status = kCvStatusOk;
         return frame;

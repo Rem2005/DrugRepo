@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One label/value row, inflated by DetailActivity. -->
+<!--
+    One label/value row: a muted term on the left, the answer on the right.
+
+    The value carries more width than the label because the labels are short and the values are
+    numbers and names - and because a value that has to wrap is far harder to read when it wraps
+    right-aligned. Values are left-aligned in their own column so a stack of them lines up and can
+    be compared down the screen.
+
+    Values too long for this shape (a hash, a UUID, a provenance sentence) use item_result_note.xml,
+    which puts the value on its own full-width line. The ids match so one fill routine serves both.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/Widget.Row"
     android:layout_width="match_parent"
@@ -17,7 +27,8 @@
         style="@style/Text.RowValue"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="end" />
+        android:layout_marginStart="12dp"
+        android:layout_weight="1.35"
+        android:gravity="start" />
 
 </LinearLayout>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DEBUG-BUILD-ONLY OVERLAY. Not present in the release APK.
+
+    Purpose: make CameraActivity reachable from `adb shell am start` so a developer can drive the
+    synthetic demonstration profile (AnalysisProfile.EXTRA = "demo") through the real camera. There
+    is deliberately no in-app way to select a profile - see AnalysisProfile's KDoc: "a mode
+    selector the officer can flip is a mode selector that will eventually be flipped in casework."
+    Without an external entry point the synthetic profile is unreachable, and an unreachable
+    demonstration mode cannot be shown to a reviewer.
+
+    Why an overlay rather than an edit to src/main/AndroidManifest.xml: CameraActivity must stay
+    non-exported in release. Exporting it permanently would let ANY app on the device pass the
+    profile extra into a case that then reports a demonstration result instead of a field result,
+    which is precisely the failure the KDoc above exists to prevent. This overlay keeps the
+    release attack surface exactly as it was and confines the widening to debug builds.
+
+    What this does NOT change: capture, ArUco, geometry, rectification, colour measurement, Lab,
+    CIEDE2000 and classification are all untouched. Only the reachability of the existing
+    "profile" intent extra differs. Field/real mode remains the default for an absent or
+    unrecognised extra (AnalysisProfile.indexOf resolves to PROFILE_INDEX_FIELD) and stays
+    INCONCLUSIVE.
+
+    tools:replace states the intent that debug wins for this attribute. Without it, adding an
+    explicit android:exported="false" to CameraActivity in src/main later would turn this overlay
+    into a hard manifest-merge failure instead of the debug-only widening it is meant to be.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name=".CameraActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+
+</manifest>

@@ -34,6 +34,12 @@
 // to cv_pipeline.cpp or colorimetry.cpp is required or permitted for that.
 
 #include <cstddef>
+#include <string>
+
+// For Lab, the type nearestSyntheticAnchor takes by value. colorimetry.h is free of OpenCV types
+// and declares no dependency of its own, so this costs nothing and avoids a duplicate definition
+// of the colour type the profile is compared in.
+#include "colorimetry.h"
 
 /** Rectangle in normalised card coordinates: 0..1 of the rectified card, origin top-left. */
 struct NormalizedRect {
@@ -97,6 +103,40 @@ enum class ComparisonTarget {
     kMeasuredReferencePatches = 0,
     /** A Lab triple stored in the profile. Requires authoritative reference data. */
     kProfileReferenceLab = 1,
+    /**
+     * The nearest of the profile's SYNTHETIC demonstration anchors, by CIEDE2000. SYNTHETIC
+     * DEMONSTRATION ONLY.
+     *
+     * Set only by a kSyntheticDemonstration profile, and only reachable because such a profile has
+     * syntheticAnchorCount > 0. It answers a different question from kMeasuredReferencePatches:
+     * not "how far is the reaction from this card's printed swatches" but "does the measured
+     * reaction colour sit on one of the demonstration colours". The anchors are stored as hex text
+     * precisely so that converting one is a deliberate act here rather than a value that could be
+     * mistaken for calibration anywhere else.
+     */
+    kNearestSyntheticAnchor = 2,
+};
+
+/**
+ * Outcome of scanning a profile's synthetic anchors for the one nearest a measured reaction Lab.
+ *
+ * Every field is derived from the colour the camera actually measured. `label` names the
+ * demonstration anchor, which is a statement about a synthetic dataset and never about a substance.
+ */
+struct SyntheticAnchorMatch {
+    /** CIEDE2000 from the measured reaction Lab to the nearest anchor. Meaningful when found. */
+    double deltaE = 0.0;
+    /** Index into ReferenceCardProfile::syntheticAnchors, or -1 when the profile holds none. */
+    int anchorIndex = -1;
+    /** Which colour of that anchor, 1 or 2. Zero when no anchor was found. */
+    int roleIndex = 0;
+    /**
+     * Human-readable identification of the anchor, e.g.
+     * "FLOW I / TEST A / Amphetamines / Start (#FFFF00)". Empty when no anchor was found.
+     */
+    std::string label;
+    /** True when at least one anchor was found, so deltaE and label may be read. */
+    bool found = false;
 };
 
 /** Presumptive outcome. Mirrors PresumptiveResult in Kotlin; kept numeric for the JNI boundary. */
@@ -238,6 +278,33 @@ struct ReferenceCardProfile {
     int syntheticAnchorCount;
 
     /**
+     * CIEDE2000 at or below which a measured reaction colour counts as a DEMONSTRATIVE match to
+     * the nearest synthetic anchor. SYNTHETIC DEMONSTRATION ONLY.
+     *
+     * Zero on every field profile, where it is never read: a field profile has no anchors to match
+     * against, so there is nothing for the number to mean. It is separate from
+     * [classification]'s boundaries on purpose, because it answers a different question. The
+     * classification boundaries interpret a comparison against this card's printed swatches;
+     * this one judges distance to a demonstration colour, where the error is not the card's but the
+     * entire uncalibrated capture chain.
+     *
+     * The shipped value is 18.0, and it is derived rather than chosen. Photographing a printed
+     * colour through a phone camera reproduces it to roughly 17 dE00 on this hardware, measured on
+     * an RMX3870 by comparing two regions of one card printed with the same grey and recovering a
+     * Lab displacement of magnitude 17.0. A tolerance tight enough to be scientifically meaningful
+     * is therefore unreachable through this chain, and a loose one would match almost anything, so
+     * the demonstration anchors were selected for margin instead and the tolerance placed in the
+     * gap that leaves: at the observed bias the demonstrative match sits at 11.5 dE00 and the
+     * demonstrative no-match at 22.9 dE00, and 18.0 separates them. Beyond a bias of about 27 dE00
+     * the two are no longer separable by any tolerance, which is a limit of demonstrating against a
+     * screen and not something a larger number here would fix.
+     *
+     * This number says nothing about any reagent, kit or substance. It is a demonstration boundary
+     * for a synthetic dataset.
+     */
+    double syntheticAnchorMatchAtOrBelow = 0.0;
+
+    /**
      * Where the numbers came from, in one sentence, carried into the UI so nobody has to guess.
      * For a field profile this must say the values are placeholders; for a synthetic one it must
      * say the values are synthetic.
@@ -257,6 +324,20 @@ const ReferenceCardProfile& ncbProfile();
 /** The synthetic demonstration profile. Never reachable from the field path. */
 const ReferenceCardProfile& syntheticProfile();
 
+/**
+ * Finds the synthetic anchor whose colour is nearest a measured reaction Lab, by CIEDE2000 over
+ * both roles of every anchor. SYNTHETIC DEMONSTRATION ONLY.
+ *
+ * Declared here, beside the anchors it reads, so that the conversion from stored hex to a Lab triple
+ * cannot be reached from anywhere that does not already hold a profile. The caller supplies the
+ * measured Lab, never a colour of its own: the whole point is that the answer is driven by what the
+ * camera saw.
+ *
+ * A profile with no anchors yields found == false. A profile whose anchors are all malformed yields
+ * found == false as well, because a distance to a colour that could not be parsed is not a
+ * measurement.
+ */
+SyntheticAnchorMatch nearestSyntheticAnchor(const ReferenceCardProfile& profile, Lab measuredLab);
 
 /** The profile the pipeline uses when no profile is named. Always the field profile. */
 const ReferenceCardProfile& activeProfile();

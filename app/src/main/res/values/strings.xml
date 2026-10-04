@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">DrugRepo</string>
+    <string name="app_name">Forenza</string>
 
     <!--
         TODO.md Phase 0 task 5, PRD.md FR-012. Officer-facing rationale, shown before the
@@ -8,8 +8,8 @@
         identification: these results are presumptive and need laboratory confirmation
         (PRD.md section 1).
     -->
-    <string name="permission_camera_rationale">DrugRepo needs the camera to photograph a field test card so it can measure the colour change on this device. The analysis runs on this phone only, and any result is presumptive — it still needs laboratory confirmation.</string>
-    <string name="permission_location_rationale">DrugRepo records where the sample was seized so the location can be shown on the digital inventory given to the Magistrate. If the location cannot be determined, the test is still saved and the record is flagged as having no coordinates.</string>
+    <string name="permission_camera_rationale">Forenza needs the camera to photograph a field test card so it can measure the colour change on this device. The analysis runs on this phone only, and any result is presumptive — it still needs laboratory confirmation.</string>
+    <string name="permission_location_rationale">Forenza records where the sample was seized so the location can be shown on the digital inventory given to the Magistrate. If the location cannot be determined, the test is still saved and the record is flagged as having no coordinates.</string>
 
     <!--
         UI polish pass (TODO.md Phase 2). Only the strings the layouts reference by name are
@@ -18,4 +18,34 @@
     <string name="common_back">← Back</string>
     <string name="badge_back">← Back</string>
     <string name="badge_hint">e.g. SIH26231-OFF7</string>
+
+    <!--
+        Demonstration Mode. The three notice lines are the reason this screen exists and are not
+        paraphrased anywhere else: a demonstration result must never be readable as a finding
+        (AGENTS.md directive 7). There is no MATCH / NO-MATCH copy here on purpose - the reference
+        card the user places in front of the camera decides the outcome, and offering a choice on
+        screen would imply the app had a say in it.
+    -->
+    <string name="demo_title">Demonstration Mode</string>
+    <string name="demo_subtitle">SYNTHETIC COLOUR DEMONSTRATION</string>
+    <string name="demo_notice_line_1">DEMONSTRATION ONLY</string>
+    <string name="demo_notice_line_2">NOT A REAL DRUG TEST</string>
+    <string name="demo_notice_line_3">NOT FORENSICALLY VALIDATED</string>
+    <string name="demo_notice_detail">The reference colour anchors used in this mode were created for this project. They are not official NCB data and not a measurement of any physical kit.</string>
+    <string name="demo_intro">This mode demonstrates the complete Forenza field-testing workflow using a synthetic reference card.</string>
+    <string name="demo_how_title">HOW IT WORKS</string>
+    <string name="demo_step_1">1.  Enter the officer badge and confirm the device credential.</string>
+    <string name="demo_step_2">2.  Place a demonstration reference card inside the camera frame.</string>
+    <string name="demo_step_3">3.  Capture the card.</string>
+    <string name="demo_step_4">4.  Forenza measures the captured test colour and compares it with the synthetic reference profile.</string>
+    <string name="demo_continue">Continue to Officer Badge</string>
+    <string name="demo_footer">Whichever reference card you use decides the outcome, because the outcome is measured from the card. Either demonstration card can be photographed.</string>
+    <string name="home_demo_heading">Demonstration Mode</string>
+    <string name="home_demo_body">Runs the normal test workflow against a synthetic reference card. Demonstration only — not a real drug test and not forensically validated.</string>
+
+    <!-- Result screen. The provenance row is collapsed by default; see activity_result.xml. -->
+    <string name="result_show_provenance">Show profile provenance</string>
+    <string name="result_hide_provenance">Hide profile provenance</string>
+    <string name="result_swatch_description">Swatch of the measured test colour</string>
+    <string name="result_swatch_caption">Measured test colour</string>
 </resources>

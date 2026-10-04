@@ -79,6 +79,13 @@
         <activity android:name=".HomeActivity" />
         <activity android:name=".BadgeActivity" />
         <activity android:name=".NewTestActivity" />
+        <!--
+            Demonstration Mode. Exported=false like every other activity: it is reachable only by
+            being started from inside the app, so no other application on the device can drive the
+            synthetic profile. The synthetic reference data is selected here, in-app, and nowhere
+            else.
+        -->
+        <activity android:name=".DemoModeActivity" />
         <activity android:name=".CameraActivity" />
         <activity android:name=".AnalysisActivity" />
         <activity android:name=".ResultActivity" />

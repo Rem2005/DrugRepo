@@ -110,8 +110,13 @@ class RealCvTestAnalyzer(
             "${colorimetry.reactionLab.format()}; dE00 ${String.format("%.2f", colorimetry.deltaE2000)}. " +
             "Geometry: $geometry. Calibration: $calibration. "
         return if (synthetic) {
-            measurements + SYNTHETIC_CLAIM.format(colorimetry.classificationLabel) +
-                " Profile ${colorimetry.profileVersion} is SYNTHETIC DEMONSTRATION DATA: " +
+            measurements + SYNTHETIC_CLAIM.format(colorimetry.demonstrationLabel) +
+                " Nearest synthetic demonstration anchor: ${colorimetry.anchorLabel}, " +
+                "CIEDE2000 ${String.format("%.2f", colorimetry.anchorDeltaE2000)} against " +
+                DEMO_TOLERANCE_TEXT + ". The reaction colour was " +
+                "measured from this image and compared with it; the anchor is an entry in a " +
+                "synthetic dataset, not a substance identified in a sample. " +
+                "Profile ${colorimetry.profileVersion} is SYNTHETIC DEMONSTRATION DATA: " +
                 "mathematically derived from synthetic colour anchors, not measured from a " +
                 "physical kit, not official NCB data, not forensically validated."
         } else {
@@ -138,5 +143,16 @@ class RealCvTestAnalyzer(
          */
         private const val SYNTHETIC_CLAIM =
             "SYNTHETIC DEMONSTRATION ONLY - outcome: %s. NOT A REAL DRUG TEST. "
+
+        /**
+         * Names where the demonstration tolerance lives rather than repeating its value. A copy of
+         * the number here would be a second source of truth that could disagree with the profile
+         * without anything failing, which for a boundary a demonstration result turns on is exactly
+         * the wrong failure mode.
+         */
+        private const val DEMO_TOLERANCE_TEXT =
+            "the synthetic profile's demonstration tolerance (syntheticAnchorMatchAtOrBelow, " +
+                "documented in reference_profile.cpp; a boundary for a synthetic dataset that " +
+                "describes no reagent)"
     }
 }

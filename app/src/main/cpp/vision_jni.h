@@ -35,12 +35,14 @@ constexpr const char* kExpectedOpenCvVersion = "4.14.0";
 constexpr const char* kMeasurementCtorSignature =
     "(Lnic/drugrepo/vision/CvColorimetryMeasurement;IIIIDDDDDDDD[I[I[I)V";
 
-// CvColorimetryMeasurement: seven ints (profileId, profileValidation, profileKind, classification,
-// swatchCount, rectifiedWidth, rectifiedHeight), one boolean (ccmApplied), nineteen doubles
-// (deltaE2000, referenceRaw R/G/B, reference R/G/B, reactionRaw R/G/B, reaction R/G/B, referenceLab
-// L/A/B, reactionLab L/A/B) and three strings (profileVersion, profileProvenance, reagentType).
+// CvColorimetryMeasurement: eight ints (profileId, profileValidation, profileKind, classification,
+// swatchCount, rectifiedWidth, rectifiedHeight, anchorMatch), one boolean (ccmApplied), twenty
+// doubles (deltaE2000, referenceRaw R/G/B, reference R/G/B, reactionRaw R/G/B, reaction R/G/B,
+// referenceLab L/A/B, reactionLab L/A/B, anchorDeltaE2000) and four strings (profileVersion,
+// profileProvenance, reagentType, anchorLabel).
 constexpr const char* kColorimetryCtorSignature =
-    "(IIIIIIIZDDDDDDDDDDDDDDDDDDDLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
+    "(IIIIIIIIZDDDDDDDDDDDDDDDDDDDDLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
+    "Ljava/lang/String;)V";
 
 // Plain C++ entry points, deliberately free of any JNI type so they can be asserted by the
 // native harness (vision_test.cpp) as well as through the JNI layer. The JNI wrappers in

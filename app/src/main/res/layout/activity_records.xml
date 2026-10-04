@@ -39,7 +39,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Every saved test on this device, in capture order. Results are presumptive and DEMO/MOCK until validated reference data exists." />
+        android:text="Saved on this device, in capture order." />
 
     <ScrollView
         android:id="@+id/listScroll"

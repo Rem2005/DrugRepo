@@ -621,6 +621,20 @@ constexpr int kFixtureWidth = 640;
 constexpr int kFixtureHeight = 480;
 constexpr int kFixtureMarkerSide = 60;
 constexpr double kFixtureSheetValue = 245.0;
+// The two demonstration colours the synthetic ANCHOR tests paint, in BGR.
+//
+// One definition, used by the C++ anchor tests below AND by the JNI fixtures further down, so the
+// Kotlin anchor tests and the C++ anchor tests cannot drift onto different colours: a Kotlin test
+// that reported a match for a colour no C++ test ever exercised would be testing nothing.
+//
+// These are demonstration-dataset entries, not reagent colours and not NCB data:
+//   kFixtureAnchorColour   #FFFF00, sits on FLOW I / TEST A / Amphetamines / Start
+//   kFixtureNoMatchColour  #00B078, nearest to every anchor is 37.1 dE00, outside the tolerance
+//
+// The greys above remain for everything that is not an anchor comparison. A grey reaction window
+// cannot exercise an anchor decision, because no anchor in the dataset is grey.
+const cv::Scalar kFixtureAnchorColour(0, 255, 255);
+const cv::Scalar kFixtureNoMatchColour(120, 176, 0);
 const std::array<double, 6> kFixtureSwatchValues = {30.0, 90.0, 150.0, 210.0, 60.0, 240.0};
 // Average of kFixtureSwatchValues, which is what the pipeline must report as the reference mean.
 constexpr double kFixtureReferenceMean = 130.0;
@@ -658,7 +672,8 @@ cv::Point2f fixtureCardMarkerCentre(int index) {
         static_cast<float>(centre.y * activeProfile().rectifiedHeight));
 }
 
-cv::Mat syntheticCardSpace(double reactionValue, bool chromaticSwatches = false) {
+cv::Mat syntheticCardSpace(double reactionValue, bool chromaticSwatches = false,
+                           const cv::Scalar* reactionColour = nullptr) {
     const ReferenceCardProfile& profile = activeProfile();
     cv::Mat card(profile.rectifiedHeight, profile.rectifiedWidth, CV_8UC3,
                  cv::Scalar(kFixtureSheetValue, kFixtureSheetValue, kFixtureSheetValue));
@@ -676,7 +691,12 @@ cv::Mat syntheticCardSpace(double reactionValue, bool chromaticSwatches = false)
     }
 
     const cv::Rect reaction = fixtureCardRect(profile.reactionRoi);
-    card(reaction).setTo(cv::Scalar(reactionValue, reactionValue, reactionValue));
+    // A chromatic override exists so the synthetic demonstration can be tested against a real
+    // demonstration colour rather than against another grey. The greys that reactionValue produces
+    // cannot exercise an anchor comparison at all, because no anchor in the dataset is grey.
+    card(reaction).setTo(reactionColour != nullptr ? *reactionColour
+                                                 : cv::Scalar(reactionValue, reactionValue,
+                                                              reactionValue));
 
     const cv::aruco::Dictionary dictionary =
         cv::aruco::getPredefinedDictionary(profile.arucoDictionary);
@@ -703,8 +723,10 @@ const std::array<cv::Point2f, 4> kTiltedCentres = {
     cv::Point2f(548.0f, 441.0f), cv::Point2f(52.0f, 418.0f)};
 
 cv::Mat frameFromCardSpace(double reactionValue, const std::array<cv::Point2f, 4>& centres,
-                           bool chromaticSwatches = false) {
-    const cv::Mat card = syntheticCardSpace(reactionValue, chromaticSwatches);
+                           bool chromaticSwatches = false,
+                           const cv::Scalar* reactionColour = nullptr) {
+    const cv::Mat card =
+        syntheticCardSpace(reactionValue, chromaticSwatches, reactionColour);
     std::array<cv::Point2f, 4> cardPoints;
     for (int i = 0; i < 4; ++i) {
         cardPoints[static_cast<size_t>(i)] = fixtureCardMarkerCentre(i);
@@ -768,6 +790,113 @@ void testOnePipelineTwoProfiles() {
     assert(std::string(field.colorimetry.profileVersion).find("SYNTHETIC") == std::string::npos);
     assert(synthetic.colorimetry.reagentType == "SYNTHETIC_DEMONSTRATION_ONLY");
     assert(field.colorimetry.reagentType != synthetic.colorimetry.reagentType);
+}
+
+void testSyntheticAnchorDecisionFollowsTheMeasuredColour() {
+    // Two fixtures identical in every respect except the colour actually painted into the reaction
+    // window. Both are real demonstration colours from the synthetic dataset, so the difference in
+    // outcome can only have come from the colour the pipeline measured. Nothing else varies: same
+    // markers, same geometry, same patches, same pipeline, same profile.
+    const cv::Scalar& demoYellow = kFixtureAnchorColour;
+    const cv::Scalar& demoTeal = kFixtureNoMatchColour;
+
+    const std::vector<uint8_t> onAnchor = encodeJpeg(
+        frameFromCardSpace(0.0, kFrontalCentres, false, &demoYellow));
+    const std::vector<uint8_t> offAnchor = encodeJpeg(
+        frameFromCardSpace(0.0, kFrontalCentres, false, &demoTeal));
+    const CvFrame matched = processJpeg(onAnchor.data(), onAnchor.size(), &syntheticProfile());
+    const CvFrame unmatched = processJpeg(offAnchor.data(), offAnchor.size(), &syntheticProfile());
+    assert(matched.status == kCvStatusOk && unmatched.status == kCvStatusOk);
+
+    // The demonstration colours have to survive JPEG and the resampling to still be recognised.
+    assert(matched.colorimetry.anchorMatch == 1);
+    assert(matched.colorimetry.classification == static_cast<int>(CvClassification::kPositive));
+    assert(unmatched.colorimetry.anchorMatch == 0);
+    assert(unmatched.colorimetry.classification == static_cast<int>(CvClassification::kNegative));
+
+    // The outcome follows a measurement, so the measurement has to be a real one and it has to be
+    // the distance that decided it. A match at a large distance, or a no-match at a small one,
+    // would mean the classification had stopped following the colour.
+    assert(matched.colorimetry.anchorDeltaE2000 <= syntheticProfile().syntheticAnchorMatchAtOrBelow);
+    assert(unmatched.colorimetry.anchorDeltaE2000 > syntheticProfile().syntheticAnchorMatchAtOrBelow);
+    assert(matched.colorimetry.anchorDeltaE2000 < unmatched.colorimetry.anchorDeltaE2000);
+
+    // The named anchor is the one the painted colour belongs to, not merely the closest entry in the
+    // dataset, and it is named as a dataset entry rather than as an identification.
+    assert(std::string(matched.colorimetry.anchorLabel).find("Amphetamines") != std::string::npos);
+    assert(std::string(matched.colorimetry.anchorLabel).find("#FFFF00") != std::string::npos);
+
+    // And the two outcomes are driven by the measured colour rather than by the fixture: reversing
+    // which colour is painted reverses the outcome.
+    const CvFrame swapped = processJpeg(offAnchor.data(), offAnchor.size(), &syntheticProfile());
+    assert(swapped.colorimetry.anchorDeltaE2000 == unmatched.colorimetry.anchorDeltaE2000);
+    assert(matched.colorimetry.anchorDeltaE2000 != unmatched.colorimetry.anchorDeltaE2000);
+}
+
+void testFieldProfileNeverCarriesAnchorsOrClassifies() {
+    // The same two demonstration colours, run through the FIELD profile. It must stay INCONCLUSIVE
+    // on both, and it must not pick up a single demonstration number on the way.
+    const cv::Scalar& demoYellow = kFixtureAnchorColour;
+    const cv::Scalar& demoTeal = kFixtureNoMatchColour;
+    const std::vector<uint8_t> onAnchor =
+        encodeJpeg(frameFromCardSpace(0.0, kFrontalCentres, false, &demoYellow));
+    const std::vector<uint8_t> offAnchor =
+        encodeJpeg(frameFromCardSpace(0.0, kFrontalCentres, false, &demoTeal));
+
+    for (const std::vector<uint8_t>* jpeg : {&onAnchor, &offAnchor}) {
+        const CvFrame field = processJpeg(jpeg->data(), jpeg->size(), &ncbProfile());
+        assert(field.status == kCvStatusOk);
+        // No validated numerical calibration exists, so a colour that IS a demonstration colour
+        // still yields no finding. This is the claim the whole field path rests on.
+        assert(field.colorimetry.classification ==
+               static_cast<int>(CvClassification::kInconclusive));
+        // A field profile has no anchors, so it has nothing to report and must say nothing.
+        assert(field.colorimetry.anchorMatch == 0);
+        assert(field.colorimetry.anchorDeltaE2000 == 0.0);
+        assert(field.colorimetry.anchorLabel.empty());
+    }
+
+    // Proven at the data level too, not only through the pipeline: the field profile carries no
+    // anchors to compare against and no tolerance to compare them with, so the demonstration path
+    // cannot be reached from field data even by a caller that asks for it by index.
+    assert(ncbProfile().syntheticAnchorCount == 0);
+    assert(ncbProfile().syntheticAnchorMatchAtOrBelow == 0.0);
+    assert(ncbProfile().comparisonTarget == ComparisonTarget::kMeasuredReferencePatches);
+    assert(nearestSyntheticAnchor(ncbProfile(), Lab{50.0, 0.0, 0.0}).found == false);
+}
+
+void testNearestAnchorSkipsUnusableColours() {
+    // A profile whose anchors cannot be parsed must report no match rather than a distance to
+    // something that was never a colour. Nothing may reach the tolerance as a comparison.
+    ReferenceCardProfile broken = syntheticProfile();
+    for (int i = 0; i < broken.syntheticAnchorCount; ++i) {
+        broken.syntheticAnchors[i].hex1 = "not-a-colour";
+        broken.syntheticAnchors[i].hex2 = "#GGGGGG";
+    }
+    assert(nearestSyntheticAnchor(broken, Lab{50.0, 0.0, 0.0}).found == false);
+
+    // A short or unterminated-looking string is rejected on length, not read past.
+    ReferenceCardProfile shortHex = syntheticProfile();
+    for (int i = 0; i < shortHex.syntheticAnchorCount; ++i) {
+        shortHex.syntheticAnchors[i].hex1 = "#FFF";
+        shortHex.syntheticAnchors[i].hex2 = nullptr;
+    }
+    assert(nearestSyntheticAnchor(shortHex, Lab{50.0, 0.0, 0.0}).found == false);
+
+    // An empty profile has nothing to scan and says so.
+    ReferenceCardProfile empty = syntheticProfile();
+    empty.syntheticAnchorCount = 0;
+    assert(nearestSyntheticAnchor(empty, Lab{50.0, 0.0, 0.0}).found == false);
+
+    // The scan really is measuring: a Lab far from every anchor is further from the nearest one than
+    // the anchor's own Lab is.
+    const Lab amphetamine = srgbToLab(1.0, 1.0, 0.0);
+    const SyntheticAnchorMatch onIt = nearestSyntheticAnchor(syntheticProfile(), amphetamine);
+    assert(onIt.found);
+    assert(onIt.deltaE < 1.0);
+    const SyntheticAnchorMatch away = nearestSyntheticAnchor(syntheticProfile(), Lab{63.7, -51.5, 18.2});
+    assert(away.found);
+    assert(away.deltaE > onIt.deltaE + 10.0);
 }
 
 void testFieldProfileStaysInconclusiveWithoutValidatedCalibration() {
@@ -1176,6 +1305,9 @@ extern "C" int vision_native_test_run() {
     testSyntheticDataCannotReachTheFieldProfile();
     testSyntheticAnchorsAreExactlyAsDefined();
     testOnePipelineTwoProfiles();
+    testSyntheticAnchorDecisionFollowsTheMeasuredColour();
+    testFieldProfileNeverCarriesAnchorsOrClassifies();
+    testNearestAnchorSkipsUnusableColours();
     testFieldProfileStaysInconclusiveWithoutValidatedCalibration();
     testPipelineRectifiesAgainstTheProfile();
     testPipelineMeasuresTheDrawnColours();
@@ -1235,9 +1367,50 @@ Java_nic_drugrepo_NativeHarnessTest_runNativeHarness(JNIEnv* env, jclass) {
 // asserted against real ArUco markers instead of a hand-drawn square that no dictionary would
 // accept. A valid marker can only be rendered from the dictionary bits, which is why the fixture
 // lives here rather than being drawn in Kotlin.
+//
+// The reaction window is GREY. That is deliberate and it is what this fixture is for: the greys
+// make the reference patches and the reaction window differ by well under 2 dE00, which is what the
+// colour-stage test needs. A grey reaction window CANNOT demonstrate an anchor decision, because no
+// anchor in the dataset is grey, so the anchor tests use the two chromatic fixtures below.
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_nic_drugrepo_vision_NativeCvTest_syntheticCardJpeg(JNIEnv* env, jclass) {
     const std::vector<uint8_t> jpeg = encodeJpeg(frameFromCardSpace(128.0, kFrontalCentres));
+    jbyteArray array = env->NewByteArray(static_cast<jsize>(jpeg.size()));
+    if (array == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(array, 0, static_cast<jsize>(jpeg.size()),
+                            reinterpret_cast<const jbyte*>(jpeg.data()));
+    return array;
+}
+
+// The same card with a real demonstration colour painted into the reaction window, so the Kotlin
+// side can assert the anchor decision end to end through JNI rather than only in C++.
+//
+// Byte-for-byte identical to the grey fixture apart from the reaction colour, which is the point:
+// anything the pipeline reports differently between these two came from the colour it measured.
+// The colour is kFixtureAnchorColour, the same one testSyntheticAnchorDecisionFollowsTheMeasuredColour
+// uses, so a Kotlin match and a C++ match are the same match.
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_nic_drugrepo_vision_NativeCvTest_syntheticYellowCardJpeg(JNIEnv* env, jclass) {
+    const std::vector<uint8_t> jpeg = encodeJpeg(
+        frameFromCardSpace(0.0, kFrontalCentres, false, &kFixtureAnchorColour));
+    jbyteArray array = env->NewByteArray(static_cast<jsize>(jpeg.size()));
+    if (array == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(array, 0, static_cast<jsize>(jpeg.size()),
+                            reinterpret_cast<const jbyte*>(jpeg.data()));
+    return array;
+}
+
+// The no-match counterpart: kFixtureNoMatchColour, nearest to every anchor at 37.1 dE00, well
+// outside the demonstration tolerance. Without this a Kotlin-side anchor test could pass on a
+// pipeline that matches everything.
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_nic_drugrepo_vision_NativeCvTest_syntheticTealCardJpeg(JNIEnv* env, jclass) {
+    const std::vector<uint8_t> jpeg = encodeJpeg(
+        frameFromCardSpace(0.0, kFrontalCentres, false, &kFixtureNoMatchColour));
     jbyteArray array = env->NewByteArray(static_cast<jsize>(jpeg.size()));
     if (array == nullptr) {
         return nullptr;

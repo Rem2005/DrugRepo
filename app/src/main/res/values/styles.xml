@@ -28,16 +28,16 @@
 
     <!-- Uppercase label that introduces a section. -->
     <style name="Text.SectionLabel" parent="">
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:letterSpacing">0.08</item>
+        <item name="android:letterSpacing">0.10</item>
     </style>
 
     <style name="Text.Support" parent="">
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">13sp</item>
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:lineSpacingMultiplier">1.25</item>
     </style>
 
     <style name="Text.Body" parent="">
@@ -47,13 +47,14 @@
 
     <!-- Left-hand term in a label/value row. -->
     <style name="Text.RowLabel" parent="">
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">13sp</item>
         <item name="android:textColor">@color/text_secondary</item>
     </style>
 
     <style name="Text.RowValue" parent="">
         <item name="android:textSize">15sp</item>
         <item name="android:textColor">@color/text_primary</item>
+        <item name="android:lineSpacingMultiplier">1.15</item>
     </style>
 
     <!-- Hashes and sequence numbers: monospace so digits can be compared by eye. -->
@@ -74,7 +75,7 @@
 
     <!-- The reported result. Colour is set per result in code; the word is always shown. -->
     <style name="Text.ResultValue" parent="">
-        <item name="android:textSize">26sp</item>
+        <item name="android:textSize">28sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>
@@ -104,8 +105,8 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">horizontal</item>
-        <item name="android:paddingTop">6dp</item>
-        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingTop">7dp</item>
+        <item name="android:paddingBottom">7dp</item>
     </style>
 
     <style name="Widget.Button.Primary" parent="">

@@ -60,29 +60,35 @@ class VisionAbiContractTest {
 
     @Test
     fun colorimetryResultHasTheShapeTheJniConstructorExpects() {
-        // The C++ side calls one constructor with an exact 30-argument descriptor
+        // The C++ side calls one constructor with an exact 33-argument descriptor
         // (kColorimetryCtorSignature). Reflection counts the same arguments here, so a Kotlin
         // signature change and the native descriptor cannot drift apart without a failure on the
         // JVM instead of NoSuchMethodError on a device mid-capture.
+        //
+        // The counts below are kColorimetryCtorSignature transcribed: eight ints, one boolean,
+        // twenty doubles, four strings. Read them off that constant, not off this test, or the two
+        // can agree while both are wrong.
         val constructor = CvColorimetryMeasurement::class.java.constructors.single()
         val parameters = constructor.parameters
-        assertEquals(30, parameters.size)
-        // Seven ints: profileId, profileValidation, profileKind, classification, swatchCount,
-        // rectifiedWidth, rectifiedHeight. A Double where an Int was declared would still compile
-        // on both sides and only fail in JNI argument marshalling at runtime.
-        for (index in 0..6) {
+        assertEquals(33, parameters.size)
+        // Eight ints: profileId, profileValidation, profileKind, classification, swatchCount,
+        // rectifiedWidth, rectifiedHeight, anchorMatch. A Double where an Int was declared would
+        // still compile on both sides and only fail in JNI argument marshalling at runtime.
+        for (index in 0..7) {
             assertEquals("parameter $index must be an Int", Int::class.java, parameters[index].type)
         }
-        assertEquals(java.lang.Boolean.TYPE, parameters[7].type)
-        // Nineteen doubles, then three strings.
-        for (index in 8..26) {
+        assertEquals(java.lang.Boolean.TYPE, parameters[8].type)
+        // Twenty doubles: deltaE2000, reference and reaction RGB raw and corrected, both Lab
+        // triples, and the anchor distance.
+        for (index in 9..28) {
             assertEquals(
                 "parameter $index must be a Double",
                 java.lang.Double.TYPE,
                 parameters[index].type,
             )
         }
-        for (index in 27..29) {
+        // Four strings: profileVersion, profileProvenance, reagentType, anchorLabel.
+        for (index in 29..32) {
             assertEquals(
                 "parameter $index must be a String",
                 java.lang.String::class.java,

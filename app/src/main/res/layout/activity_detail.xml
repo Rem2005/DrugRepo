@@ -3,6 +3,9 @@
     Detail. The label/value rows are built by DetailActivity from the record it reads back
     through the existing DAO, so this file only provides the sections. Nothing here invents a
     value: every row is a field of the stored record.
+
+    Section headers sit inside their cards, as on the Result screen, so the two screens read the
+    same way.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -44,7 +47,7 @@
                 style="@style/Text.Pill"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="@dimen/item_gap"
+                android:layout_marginStart="@dimen/item_gap"
                 android:background="@drawable/bg_pill"
                 android:backgroundTint="@color/demo_bg"
                 android:text="DEMO / MOCK"
@@ -65,7 +68,7 @@
             style="@style/Widget.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/section_gap">
+            android:layout_marginTop="@dimen/item_gap">
 
             <TextView
                 style="@style/Text.SectionLabel"
@@ -78,74 +81,74 @@
                 style="@style/Text.ResultValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/item_gap"
+                android:layout_marginTop="6dp"
                 android:text="—" />
 
             <LinearLayout
                 android:id="@+id/containerResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/row_gap"
                 android:orientation="vertical" />
         </LinearLayout>
 
         <!-- Test information -->
-        <TextView
-            style="@style/Text.SectionLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="TEST INFORMATION" />
-
         <LinearLayout
             style="@style/Widget.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TEST INFORMATION" />
 
             <LinearLayout
                 android:id="@+id/containerInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
                 android:orientation="vertical" />
         </LinearLayout>
 
         <!-- Capture information -->
-        <TextView
-            style="@style/Text.SectionLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="CAPTURE INFORMATION" />
-
         <LinearLayout
             style="@style/Widget.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CAPTURE INFORMATION" />
 
             <LinearLayout
                 android:id="@+id/containerCapture"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
                 android:orientation="vertical" />
         </LinearLayout>
 
         <!-- Security -->
-        <TextView
-            style="@style/Text.SectionLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="SECURITY" />
-
         <LinearLayout
             style="@style/Widget.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <TextView
+                style="@style/Text.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SECURITY" />
+
             <LinearLayout
                 android:id="@+id/containerSecurity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/row_gap"
                 android:orientation="vertical" />
         </LinearLayout>
 
@@ -154,7 +157,6 @@
             style="@style/Widget.Button.Secondary"
             android:layout_width="match_parent"
             android:layout_height="@dimen/button_height"
-            android:layout_marginTop="@dimen/item_gap"
             android:text="Back to Records" />
 
     </LinearLayout>

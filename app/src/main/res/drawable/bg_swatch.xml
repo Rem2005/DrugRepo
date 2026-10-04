@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The measured-colour swatch. The fill is tinted in code from the colour the pipeline measured, so
+    what is shown beside the RGB numbers is that same measurement and nothing else. The border is
+    there so a near-white measurement still has a visible edge against the card.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/divider" />
+    <corners android:radius="6dp" />
+</shape>

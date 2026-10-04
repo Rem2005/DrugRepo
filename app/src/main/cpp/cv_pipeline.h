@@ -58,8 +58,8 @@ enum CvGeometrySource {
 // pixel means so that "what the camera saw" and "what the pipeline concluded" stay separable in
 // the record.
 //
-// Java-side layout (see CvColorimetryMeasurement.kt): seven ints, one boolean, nineteen doubles
-// and three strings, in the order declared here.
+// Java-side layout (see CvColorimetryMeasurement.kt): eight ints, one boolean, twenty doubles
+// and four strings, in the order declared here.
 struct CvColorimetryFrame {
     int profileId = 0;           // index into the profile table
     int profileValidation = 0;   // ProfileValidation
@@ -93,13 +93,23 @@ struct CvColorimetryFrame {
     double referenceLabB = 0.0;
     double reactionLabL = 0.0;
     double reactionLabA = 0.0;
-    double reactionLabB = 0.0;
+double reactionLabB = 0.0;
+
+    // SYNTHETIC DEMONSTRATION ONLY. Distance from the measured reaction colour to the nearest
+    // synthetic demonstration anchor, and whether that distance is within this profile's
+    // demonstration tolerance. Both stay at zero / false on a field profile, which has no anchors to
+    // compare against, so no field result can ever carry a demonstration number.
+    double anchorDeltaE2000 = 0.0;
+    int anchorMatch = 0;  // 1 only when anchorDeltaE2000 is within the demonstration tolerance
 
     // Profile provenance, carried so the UI can state where the numbers came from without
     // re-reading the profile table.
     std::string profileVersion;
     std::string profileProvenance;
     std::string reagentType;
+    // Which synthetic demonstration anchor the measured colour sits nearest. Empty on a field
+    // profile. Names a colour in a synthetic dataset, never a substance in a sample.
+    std::string anchorLabel;
 };
 
 // Structured pipeline output. Plain data only: no OpenCV types, no JSON.

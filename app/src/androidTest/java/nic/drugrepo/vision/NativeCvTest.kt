@@ -15,14 +15,24 @@ import java.io.File
  * Targeted checks for the real CV stage: the Kotlin/JNI boundary, the C++ pipeline behind it, and
  * the analyzer that wraps both.
  *
- * The fixture comes from the native harness: a card drawn in the profile's own card space and
- * warped into a 640x480 frame, carrying six flat grey swatches, a flat grey reaction window and
- * four generated ArUco markers. It is drawn in C++ because a valid ArUco marker can only be
- * rendered from the dictionary bits, and that renderer lives there.
+ * The fixtures come from the native harness: a card drawn in the profile's own card space and
+ * warped into a 640x480 frame, carrying six flat swatches and four generated ArUco markers. It is
+ * drawn in C++ because a valid ArUco marker can only be rendered from the dictionary bits, and
+ * that renderer lives there.
  *
- * The fixture is a TEST FIXTURE for geometry and colour extraction. Its greys are arbitrary values
- * chosen to be distinguishable; they are not colours of any reagent, and the classification the
- * pipeline reports is a consequence of the provisional profile's boundary table, not a finding.
+ * The swatches are flat greys, chosen to be distinguishable; they are not colours of any reagent.
+ *
+ * The reaction window comes in three variants, and which one a test uses is the whole point:
+ *  - grey - reference and reaction differ by well under 2 dE00, which is what the colour-stage
+ *    test needs. A grey reaction window CANNOT demonstrate an anchor decision, because no anchor in
+ *    the dataset is grey.
+ *  - #FFFF00 - sits on FLOW I / TEST A / Amphetamines / Start, so it must classify as a
+ *    demonstration match.
+ *  - #00B078 - nearest to every anchor at 37.1 dE00, so it must classify as a demonstration
+ *    no-match.
+ *
+ * None of these is a finding. The colours are a synthetic demonstration dataset, and the
+ * classification the pipeline reports is a consequence of that dataset, not of any substance.
  *
  * Needs a device - the native library cannot load on the JVM - so this lives in androidTest. The
  * equivalent C++ asserts, including all 34 published CIEDE2000 pairs, run through NativeHarnessTest.
@@ -153,6 +163,17 @@ class NativeCvTest {
         // That single difference is the separation.
         assertEquals(CvColorimetryMeasurement.PROFILE_KIND_FIELD, field.profileKind)
         assertFalse(field.isSyntheticProfile)
+        // The field path publishes no anchor at all, so there is nothing on a field measurement for
+        // any screen to render as a demonstration. These three are the last line of defence: even if
+        // a future UI read anchorLabel or anchorDeltaE2000 unconditionally, the field profile gives
+        // it an empty string and a zero rather than a demonstration target.
+        assertFalse(
+            "the field profile holds no demonstration anchors, so it must report no match",
+            field.isDemonstrationAnchorMatch,
+        )
+        assertEquals("", field.anchorLabel)
+        assertEquals(0.0, field.anchorDeltaE2000, 0.0)
+        assertEquals("", field.demonstrationLabel)
         assertEquals(
             "the field profile has no validated calibration, so it may only be INCONCLUSIVE",
             CvColorimetryMeasurement.CLASSIFICATION_INCONCLUSIVE,
@@ -170,17 +191,44 @@ class NativeCvTest {
             colorimetry.profileVersion.contains("SYNTHETIC_DEMONSTRATION_ONLY"),
         )
         // A demonstration profile exists to demonstrate classification. The fixture is grey on grey
-        // so its dE00 sits inside the demonstration profile's match band, and the same bytes
-        // through the field profile above were refused. Same pipeline, same maths, different
-        // reference data - which is the whole point of the separation.
+        // so its reference-versus-reaction dE00 sits inside the demonstration match band, and the
+        // same bytes through the field profile above were refused. Same pipeline, same maths,
+        // different reference data - which is the whole point of the separation.
         assertTrue(
             "fixture dE00 ${colorimetry.deltaE2000} should be inside the demonstration match band",
             colorimetry.deltaE2000 <= DEMONSTRATION_MATCH_AT_OR_BELOW,
         )
+        // The classification claim needs the chromatic fixture, not the grey one. No anchor in the
+        // dataset is grey, so the nearest anchor to this fixture's grey reaction window sits far
+        // outside the demonstration tolerance and NO MATCH is the correct outcome for it. Asserting
+        // POSITIVE here would be asserting that the pipeline invents a match out of a colour that
+        // belongs to nothing.
+        val chromaticMeasurement = NativeCv.processImage(
+            syntheticYellowCardJpeg(),
+            VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO,
+        )
+        assertTrue(
+            "chromatic fixture status was ${chromaticMeasurement.status}",
+            chromaticMeasurement.isValid,
+        )
+        val chromatic = chromaticMeasurement.colorimetry
+        assertEquals(
+            "a reaction colour sitting on an anchor must report a demonstration match",
+            1,
+            chromatic.anchorMatch,
+        )
+        assertTrue(
+            "the named anchor must be the one the painted colour belongs to: ${chromatic.anchorLabel}",
+            chromatic.anchorLabel.contains("Amphetamines"),
+        )
         assertEquals(
             CvColorimetryMeasurement.CLASSIFICATION_POSITIVE,
-            colorimetry.classification,
+            chromatic.classification,
         )
+        // No anchor distance bound is restated here. The tolerance lives in reference_profile.cpp as
+        // syntheticAnchorMatchAtOrBelow; a second copy in Kotlin could disagree with it without
+        // anything failing, which is exactly the wrong failure mode for a boundary a demonstration
+        // result turns on. The C++ anchor test asserts the number itself; this asserts the wiring.
     }
 
     @Test
@@ -276,8 +324,10 @@ class NativeCvTest {
 
     @Test
     fun demonstrationAnalyzerClassifiesAndLabelsEveryResultSynthetic() {
+        // The chromatic fixture, not the grey one: this test is about the classification resolving,
+        // and a grey reaction window belongs to no anchor, so it can only ever resolve to NO MATCH.
         val file = File.createTempFile("drugrepo-cv-demo", ".jpg")
-        file.writeBytes(syntheticCardJpeg())
+        file.writeBytes(syntheticYellowCardJpeg())
         file.deleteOnExit()
 
         val result = RealCvTestAnalyzer(VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO).analyze(file)
@@ -301,9 +351,42 @@ class NativeCvTest {
             "the synthetic reagent field must never name a reagent: ${result.message}",
             result.message.contains("NCB_STANDARD_NARCOTICS_DD_KIT"),
         )
-        assertFalse(
-            "no identification language: ${result.message}",
-            result.message.contains("identified"),
+        // The intent is that the message makes no identification CLAIM. A substring test for the
+        // bare word "identified" cannot tell a claim apart from the sentence that denies one, and
+        // the analyzer does deny one outright ("not a substance identified in a sample"). So the
+        // positive form is asserted instead: the denial must be present. Keeping the negative
+        // would have pushed the fix into the message, deleting the disclaimer to satisfy a word
+        // search - the wrong direction for a compliance string.
+        assertTrue(
+            "message must deny identification outright: ${result.message}",
+            result.message.contains("not a substance identified in a sample"),
+        )
+
+        // The other half of "classifies": a reaction colour belonging to no anchor must come back
+        // NO MATCH, and must carry exactly the same demonstration disclaimers. Without this the
+        // test above would still pass on a pipeline that reported POSITIVE for every colour, which
+        // is the failure mode the synthetic/field separation exists to make impossible.
+        val offAnchorFile = File.createTempFile("drugrepo-cv-demo-nomatch", ".jpg")
+        offAnchorFile.writeBytes(syntheticTealCardJpeg())
+        offAnchorFile.deleteOnExit()
+
+        val offAnchor = RealCvTestAnalyzer(VisionNative.PROFILE_INDEX_SYNTHETIC_DEMO)
+            .analyze(offAnchorFile)
+
+        assertEquals(AnalysisMode.SYNTHETIC_DEMONSTRATION, offAnchor.mode)
+        assertEquals(
+            "a colour belonging to no anchor must not be reported as a match",
+            PresumptiveResult.NEGATIVE,
+            offAnchor.presumptiveResult,
+        )
+        assertEquals(0, offAnchor.cvMeasurement!!.colorimetry.anchorMatch)
+        assertTrue(
+            "message must disclaim the demonstration: ${offAnchor.message}",
+            offAnchor.message.contains("DEMONSTRATION"),
+        )
+        assertTrue(
+            "a demonstration no-match must deny identification outright: ${offAnchor.message}",
+            offAnchor.message.contains("not a substance identified in a sample"),
         )
     }
 
@@ -336,6 +419,18 @@ class NativeCvTest {
 
         @JvmStatic
         private external fun syntheticCardJpeg(): ByteArray
+
+        /**
+         * The same card with a real demonstration colour in the reaction window, and its
+         * no-match counterpart. The grey fixture above cannot exercise an anchor decision, because
+         * no anchor in the dataset is grey; these two can, and they are painted with the same
+         * colours the C++ anchor tests use, so a Kotlin match and a C++ match are the same match.
+         */
+        @JvmStatic
+        private external fun syntheticYellowCardJpeg(): ByteArray
+
+        @JvmStatic
+        private external fun syntheticTealCardJpeg(): ByteArray
 
         @JvmStatic
         private external fun blankFrameJpeg(): ByteArray

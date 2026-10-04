@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One label-above-value row, for values too long to sit beside a label: a hash, a record id, a
+    provenance sentence.
+
+    Split from item_detail_row.xml because the content differs in kind, not in size. Side by side
+    is right for two short terms; a 64-character hash forced into a narrow column wraps into an
+    unreadable block, so those values get the full width on their own line instead.
+
+    The view ids deliberately match item_detail_row.xml so both shapes go through the same fill code.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.Row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvRowLabel"
+        style="@style/Text.RowLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/tvRowValue"
+        style="@style/Text.Body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp" />
+</LinearLayout>
