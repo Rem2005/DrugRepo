@@ -25,7 +25,10 @@ Forenza explores a digital workflow where a mobile device can:
 - Maintain an integrity-linked record of the test
 
 The application is designed around an **offline-first** workflow so that core field operations do not depend on network connectivity.
-
+<p align="center">
+<img width="300"  alt="Screenshot_2026-10-04-18-07-26-63_18d2b75f7e632145edbd616008505952 jpg" src="https://github.com/user-attachments/assets/9d2cc8e3-8a45-426d-89c5-a22c459a3a89" />
+<img width="300" alt="Screenshot_2026-10-04-18-07-19-38_18d2b75f7e632145edbd616008505952 jpg" src="https://github.com/user-attachments/assets/79bac806-c7c1-47bf-a480-e11388d89d11" />
+</p>
 ---
 
 ## Key Features
@@ -68,3 +71,9 @@ RGB → XYZ → CIE Lab
 CIEDE2000
       ↓
 Analysis Result
+```
+<p align="center">
+<img width="250" alt="Screenshot_2026-10-04-18-08-32-87_18d2b75f7e632145edbd616008505952 jpg" src="https://github.com/user-attachments/assets/c8e03861-520b-4410-8a37-89a3cb3f0a4e" />
+<img width="250" alt="Screenshot_2026-10-04-18-08-47-14_18d2b75f7e632145edbd616008505952 jpg" src="https://github.com/user-attachments/assets/d0a6ce04-4dea-49d7-973e-dcd99b886854" />
+<img width="250" alt="Screenshot_2026-10-04-18-08-39-24_18d2b75f7e632145edbd616008505952 jpg" src="https://github.com/user-attachments/assets/334938d7-e1b4-48ad-b9d5-107a4921e9df" />
+</p>
